@@ -1,5 +1,5 @@
 // src/components/ProductCard.tsx
-import React, { memo, useEffect, useRef, useState } from 'react';
+import React, { memo, useEffect, useRef } from 'react';
 import {
   View,
   Text,
@@ -8,12 +8,14 @@ import {
   Dimensions,
   Animated,
   Alert,
+  ImageSourcePropType,
 } from 'react-native';
 import { COLORS, SIZES } from '@constants/theme';
 import ShopButton from '@components/ShopButton';
 import { Product } from '@data/mockProducts';
 
 const { width } = Dimensions.get('window');
+// Chia 2 cột đều nhau (khoảng cách viền và giữa là 12)
 const CARD_WIDTH = (width - 36) / 2;
 
 interface Props {
@@ -30,7 +32,6 @@ const ProductCard = ({
   textColor = '#2C3E50',
 }: Props) => {
   const opacity = useRef(new Animated.Value(0)).current;
-  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     Animated.timing(opacity, {
@@ -48,6 +49,11 @@ const ProductCard = ({
     }
   };
 
+  const imageSource: ImageSourcePropType =
+    typeof product.image === 'string'
+      ? { uri: product.image }
+      : product.image;
+
   return (
     <Animated.View
       style={[
@@ -55,17 +61,12 @@ const ProductCard = ({
         { backgroundColor: cardBackground, opacity },
       ]}
     >
-      {/* Vùng hiển thị hình ảnh sản phẩm với chiều cao cố định rõ ràng cho Android */}
+      {/* Vùng hiển thị hình ảnh sản phẩm với kích thước chuẩn */}
       <View style={styles.imageContainer}>
         <Image
-          source={{
-            uri: imgError
-              ? `https://picsum.photos/seed/${product.id}/300/300`
-              : product.image,
-          }}
+          source={imageSource}
           style={styles.image}
           resizeMode="cover"
-          onError={() => setImgError(true)}
         />
       </View>
 
