@@ -1,13 +1,21 @@
-import React, { memo, useEffect, useRef } from "react";
-import { View, Text, Image, StyleSheet, Dimensions, Animated } from "react-native";
-import { COLORS, SIZES } from "@constants/theme";
-import ShopButton from "@components/ShopButton";
-import { Product } from "@data/mockProducts";
+// src/components/ProductCard.tsx
+import React, { memo, useEffect, useRef } from 'react';
+import {
+  View,
+  Text,
+  Image,
+  StyleSheet,
+  Dimensions,
+  Animated,
+  Alert,
+} from 'react-native';
+import { COLORS, SIZES } from '@constants/theme';
+import ShopButton from '@components/ShopButton';
+import { Product } from '@data/mockProducts';
 
-// Lấy chiều rộng màn hình để tính kích thước cột (Grid 2 cột, có khe hở đều 2 bên)
-const { width } = Dimensions.get("window");
-const GAP = SIZES.padding;
-const CARD_WIDTH = (width - GAP * 3) / 2;
+const { width } = Dimensions.get('window');
+// Chia 2 cột đều nhau (khoảng cách viền và giữa là 12)
+const CARD_WIDTH = (width - 36) / 2;
 
 interface Props {
   product: Product;
@@ -19,43 +27,59 @@ interface Props {
 const ProductCard = ({
   product,
   onPressBuy,
-  cardBackground = COLORS.surface,
-  textColor = COLORS.text,
+  cardBackground = '#FFFFFF',
+  textColor = '#2C3E50',
 }: Props) => {
   const opacity = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
     Animated.timing(opacity, {
       toValue: 1,
-      duration: 400,
+      duration: 350,
       useNativeDriver: true,
     }).start();
   }, [opacity]);
 
+  const handleBuy = () => {
+    if (onPressBuy) {
+      onPressBuy(product);
+    } else {
+      Alert.alert('🛒 Đã chọn sản phẩm', `${product.name}\nGiá: ${product.price.toLocaleString('vi-VN')} đ`);
+    }
+  };
+
   return (
-    <Animated.View style={[styles.card, { opacity }]}>
-      <Image
-        source={{ uri: product.image }}
-        style={styles.image}
-        resizeMode="cover"
-      />
+    <Animated.View
+      style={[
+        styles.card,
+        { backgroundColor: cardBackground, opacity },
+      ]}
+    >
+      {/* Vùng hiển thị hình ảnh sản phẩm */}
+      <View style={styles.imageContainer}>
+        <Image
+          source={{ uri: product.image }}
+          style={styles.image}
+          resizeMode="cover"
+        />
+      </View>
+
+      {/* Thông tin sản phẩm */}
       <View style={styles.infoContainer}>
-        <Text style={styles.name} numberOfLines={2}>
+        <Text style={[styles.name, { color: textColor }]} numberOfLines={2}>
           {product.name}
         </Text>
+
         <Text style={styles.price}>
-          {new Intl.NumberFormat("vi-VN", {
-            style: "currency",
-            currency: "VND",
-          }).format(product.price)}
+          {product.price.toLocaleString('vi-VN')} đ
         </Text>
 
-        {/* Tái sử dụng Nút bấm từ Sprint 3 */}
+        {/* Nút bấm Mua ngay tái sử dụng ShopButton từ Chương 3 */}
         <ShopButton
           title="Mua ngay"
-          onPress={() => {}}
-          style={styles.button}
-          textStyle={{ fontSize: 12 }}
+          onPress={handleBuy}
+          style={styles.buyBtn}
+          textStyle={styles.buyBtnText}
         />
       </View>
     </Animated.View>
@@ -65,39 +89,56 @@ const ProductCard = ({
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    marginHorizontal: GAP / 2, // Khe hở đều giữa 2 cột và ở 2 mép màn hình
-    marginBottom: GAP,
-    backgroundColor: COLORS.surface,
-    borderRadius: SIZES.radius,
-    overflow: "hidden",
-    // Đổ bóng
-    shadowColor: "#000",
+    marginHorizontal: 6,
+    marginBottom: 12,
+    borderRadius: 14,
+    borderWidth: 1,
+    borderColor: '#ECECEC',
+    padding: 10,
+    elevation: 2,
+    shadowColor: '#000',
     shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.1,
+    shadowOpacity: 0.08,
     shadowRadius: 4,
-    elevation: 3,
+  },
+  imageContainer: {
+    width: '100%',
+    height: 120,
+    borderRadius: 10,
+    backgroundColor: '#F8F9FA',
+    overflow: 'hidden',
+    justifyContent: 'center',
+    alignItems: 'center',
   },
   image: {
-    width: "100%",
-    height: CARD_WIDTH, // Ảnh hình vuông
+    width: '100%',
+    height: '100%',
   },
   infoContainer: {
-    padding: 10,
+    paddingTop: 8,
   },
   name: {
-    fontSize: SIZES.body2,
-    color: COLORS.text,
-    fontWeight: "500",
-    height: 40, // Cố định chiều cao 2 dòng
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#2C3E50',
+    lineHeight: 18,
+    height: 38,
   },
   price: {
-    fontSize: SIZES.body1,
-    color: COLORS.primary,
-    fontWeight: "bold",
-    marginVertical: 8,
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#FF4D4F',
+    marginVertical: 6,
   },
-  button: {
+  buyBtn: {
     height: 36,
+    borderRadius: 8,
+    backgroundColor: '#FF4D4F',
+    paddingHorizontal: 0,
+  },
+  buyBtnText: {
+    fontSize: 13,
+    fontWeight: '700',
   },
 });
 

@@ -1,5 +1,5 @@
 // src/data/mockProducts.ts
-// Dữ liệu 50 sản phẩm mẫu cho Sprint 4 và các chương tiếp theo (Chương 4.3 & Sprint 4)
+// Dữ liệu sản phẩm mẫu cho Chương 4 Sprint 4 chuẩn xác theo giao diện minh chứng
 
 export interface Product {
   id: string;
@@ -11,46 +11,85 @@ export interface Product {
   discount?: boolean;
 }
 
-const CATEGORIES = ['Điện thoại', 'Tai nghe', 'Đồng hồ', 'Phụ kiện', 'Laptop'];
-
-const PRODUCT_NAMES = [
-  'Tai nghe không dây AirPods Pro 2 MagSafe',
-  'iPhone 15 Pro Max 256GB Titan Tự Nhiên',
-  'Đồng hồ thông minh Apple Watch Ultra 2',
-  'Củ sạc nhanh 65W GaN Type-C 3 cổng',
-  'Cáp sạc bọc dù chống đứt Type-C to Lightning',
-  'Pin sạc dự phòng không dây Magsafe 10000mAh',
-  'Ốp lưng từ tính chống va đập chuẩn quân đội',
-  'Bàn phím cơ Bluetooth RGB 3 chế độ kết nối',
-  'Chuột công thái học không dây Silent Click',
-  'Loa Bluetooth chống nước chuẩn IPX7 công suất lớn',
+export const MOCK_PRODUCTS: Product[] = [
+  {
+    id: 'prod_1',
+    name: 'Tai nghe Bluetooth',
+    price: 1500000,
+    image: 'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400',
+    category: 'Tai nghe',
+    rating: 4.8,
+  },
+  {
+    id: 'prod_2',
+    name: 'Đồng hồ thông minh SE',
+    price: 2300000,
+    image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
+    category: 'Đồng hồ',
+    rating: 4.8,
+  },
+  {
+    id: 'prod_3',
+    name: 'Galaxy S21 Điện thoại Galaxy',
+    price: 15990000,
+    image: 'https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400',
+    category: 'Điện thoại',
+    rating: 4.8,
+  },
+  {
+    id: 'prod_4',
+    name: 'GaN Sạc nhanh 65W GaN',
+    price: 850000,
+    image: 'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=400',
+    category: 'Phụ kiện',
+    rating: 4.8,
+  },
+  {
+    id: 'prod_5',
+    name: 'MX Master Chuột không dây',
+    price: 1100000,
+    image: 'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=400',
+    category: 'Phụ kiện',
+    rating: 4.8,
+  },
+  {
+    id: 'prod_6',
+    name: 'Anker Pin sạc dự phòng',
+    price: 790000,
+    image: 'https://images.unsplash.com/photo-1609592424368-232a514d7a8a?w=400',
+    category: 'Phụ kiện',
+    rating: 4.8,
+  },
+  {
+    id: 'prod_7',
+    name: 'Logitech Webcam 4K Ultra',
+    price: 1990000,
+    image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400',
+    category: 'Phụ kiện',
+    rating: 4.8,
+  },
+  {
+    id: 'prod_8',
+    name: 'Mechanical Bàn phím cơ K8',
+    price: 2100000,
+    image: 'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=400',
+    category: 'Phụ kiện',
+    rating: 4.8,
+  },
+  {
+    id: 'prod_9',
+    name: 'AirPods Pro 2 MagSafe',
+    price: 4990000,
+    image: 'https://images.unsplash.com/photo-1600294037681-c80b4cb5b434?w=400',
+    category: 'Tai nghe',
+    rating: 4.9,
+  },
+  {
+    id: 'prod_10',
+    name: 'iPhone 15 Pro Max 256GB',
+    price: 29990000,
+    image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400',
+    category: 'Điện thoại',
+    rating: 5.0,
+  },
 ];
-
-const IMAGES = [
-  'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?w=400',
-  'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=400',
-  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=400',
-  'https://images.unsplash.com/photo-1546868871-7041f2a55e12?w=400',
-  'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=400',
-  'https://images.unsplash.com/photo-1583394838336-acd977736f90?w=400',
-  'https://images.unsplash.com/photo-1608231387042-66d1773070a5?w=400',
-  'https://images.unsplash.com/photo-1593642632823-8f785ba67e45?w=400',
-];
-
-export const MOCK_PRODUCTS: Product[] = Array.from({ length: 50 }).map((_, index) => {
-  const nameBase = PRODUCT_NAMES[index % PRODUCT_NAMES.length];
-  const category = CATEGORIES[index % CATEGORIES.length];
-  const image = IMAGES[index % IMAGES.length];
-  const price = 250000 + (index + 1) * 320000;
-  const rating = 4.0 + Number(((index % 10) * 0.1).toFixed(1));
-
-  return {
-    id: `prod_${index + 1}`,
-    name: `${nameBase} (Ver ${index + 1})`,
-    price,
-    image,
-    category,
-    rating: Math.min(5.0, rating),
-    discount: index % 3 === 0,
-  };
-});

@@ -1,46 +1,46 @@
-import React, { useState, useCallback } from "react";
-import { View, Text, StyleSheet } from "react-native";
-// ĐÚNG: SafeAreaView phải lấy từ 'react-native-safe-area-context', KHÔNG lấy từ 'react-native'
-import { SafeAreaView } from "react-native-safe-area-context";
-import { FlashList } from "@shopify/flash-list";
-import ProductCard from "@components/ProductCard";
-import { MOCK_PRODUCTS } from "@data/mockProducts";
-import { COLORS, SIZES } from "@constants/theme";
+// src/screens/HomeScreen.tsx
+import React, { useState, useCallback } from 'react';
+import { View, Text, StyleSheet, Pressable, StatusBar } from 'react-native';
+import { SafeAreaView } from 'react-native-safe-area-context';
+import { FlashList } from '@shopify/flash-list';
+import ProductCard from '@components/ProductCard';
+import { MOCK_PRODUCTS } from '@data/mockProducts';
 
 const HomeScreen = () => {
-  // Danh sách hiển thị nằm trong State để hàm làm mới có chỗ cập nhật
   const [products, setProducts] = useState(MOCK_PRODUCTS);
   const [refreshing, setRefreshing] = useState(false);
 
   const handleRefresh = useCallback(() => {
     setRefreshing(true);
-    // Giả lập gọi lại API mất 1.5 giây
     setTimeout(() => {
-      // Xáo ngẫu nhiên mảng để thấy rõ danh sách vừa làm mới
+      // Giả lập làm mới dữ liệu
       setProducts([...MOCK_PRODUCTS].sort(() => Math.random() - 0.5));
       setRefreshing(false);
-    }, 1500);
+    }, 1200);
   }, []);
 
   return (
-    // SafeAreaView của safe-area-context tự tính đúng khoảng Tai thỏ/Dynamic Island
-    <SafeAreaView style={styles.safeArea} edges={["top", "left", "right"]}>
+    <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
+      <StatusBar barStyle="dark-content" />
       <View style={styles.container}>
-        {/* Header AppBar */}
+        {/* Header AppBar chuẩn ảnh minh chứng: Có nút Back và Tiêu đề "Khám phá" */}
         <View style={styles.header}>
+          <Pressable style={styles.backBtn} hitSlop={12}>
+            <Text style={styles.backIcon}>‹</Text>
+          </Pressable>
           <Text style={styles.headerTitle}>Khám phá</Text>
+          <View style={styles.headerRight} />
         </View>
 
-        {/* FlashList: thuật toán Recycling viết bằng C++ của Shopify */}
+        {/* Lưới sản phẩm FlashList 2 cột */}
         <FlashList
           data={products}
           keyExtractor={(item) => item.id}
           renderItem={({ item }) => <ProductCard product={item} />}
-          // --- CẤU HÌNH GRID 2 CỘT ---
-          numColumns={2} // Chia 2 cột (khe hở đã xử lý bằng margin trong ProductCard)
-          refreshing={refreshing} // FlashList tự vẽ vòng xoay loading khi true
-          onRefresh={handleRefresh} // Gọi tự động khi người dùng kéo tay xuống đầu danh sách
-          contentContainerStyle={{ padding: SIZES.padding / 2 }}
+          numColumns={2}
+          refreshing={refreshing}
+          onRefresh={handleRefresh}
+          contentContainerStyle={styles.listContent}
           showsVerticalScrollIndicator={false}
         />
       </View>
@@ -51,21 +51,52 @@ const HomeScreen = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: COLORS.background, // Màu nền vùng tai thỏ
+    backgroundColor: '#FFFFFF',
   },
   container: {
     flex: 1,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#F5F5F5',
   },
   header: {
-    paddingHorizontal: SIZES.padding,
-    paddingVertical: 15,
-    backgroundColor: COLORS.surface,
+    height: 52,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    paddingHorizontal: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+    elevation: 2,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+  },
+  backBtn: {
+    width: 36,
+    height: 36,
+    justifyContent: 'center',
+    alignItems: 'flex-start',
+  },
+  backIcon: {
+    fontSize: 32,
+    color: '#333333',
+    fontWeight: '300',
+    marginTop: -4,
   },
   headerTitle: {
-    fontSize: SIZES.h1,
-    fontWeight: "bold",
-    color: COLORS.text,
+    fontSize: 19,
+    fontWeight: '700',
+    color: '#1A1A1A',
+    textAlign: 'center',
+  },
+  headerRight: {
+    width: 36,
+  },
+  listContent: {
+    paddingHorizontal: 6,
+    paddingTop: 10,
+    paddingBottom: 24,
   },
 });
 
