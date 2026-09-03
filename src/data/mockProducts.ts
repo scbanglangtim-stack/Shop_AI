@@ -1,5 +1,5 @@
 // src/data/mockProducts.ts
-// Dữ liệu sản phẩm mẫu cho Chương 4 Sprint 4 sử dụng local assets đảm bảo hiện ảnh 100% trên máy ảo
+// Dữ liệu sản phẩm mẫu cho Chương 4 Sprint 4: 10 sản phẩm độc nhất khớp 100% từng hình ảnh
 import { ImageSourcePropType } from 'react-native';
 
 export interface Product {
@@ -33,7 +33,7 @@ export const MOCK_PRODUCTS: Product[] = [
     id: 'prod_3',
     name: 'Galaxy S21 Điện thoại Galaxy',
     price: 15990000,
-    image: require('../assets/products/phone.jpg'),
+    image: require('../assets/products/galaxy_phone.jpg'),
     category: 'Điện thoại',
     rating: 4.8,
   },
@@ -79,9 +79,9 @@ export const MOCK_PRODUCTS: Product[] = [
   },
   {
     id: 'prod_9',
-    name: 'AirPods Pro 2 MagSafe',
-    price: 4990000,
-    image: require('../assets/products/airpods.jpg'),
+    name: 'Tai nghe chụp tai Wireless',
+    price: 2900000,
+    image: require('../assets/products/headphone_overear.jpg'),
     category: 'Tai nghe',
     rating: 4.9,
   },
@@ -89,7 +89,7 @@ export const MOCK_PRODUCTS: Product[] = [
     id: 'prod_10',
     name: 'iPhone 15 Pro Max 256GB',
     price: 29990000,
-    image: require('../assets/products/phone.jpg'),
+    image: require('../assets/products/iphone.jpg'),
     category: 'Điện thoại',
     rating: 5.0,
   },
