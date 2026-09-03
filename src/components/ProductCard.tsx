@@ -1,5 +1,5 @@
 // src/components/ProductCard.tsx
-import React, { memo, useEffect, useRef } from 'react';
+import React, { memo, useEffect, useRef, useState } from 'react';
 import {
   View,
   Text,
@@ -14,7 +14,6 @@ import ShopButton from '@components/ShopButton';
 import { Product } from '@data/mockProducts';
 
 const { width } = Dimensions.get('window');
-// Chia 2 cột đều nhau (khoảng cách viền và giữa là 12)
 const CARD_WIDTH = (width - 36) / 2;
 
 interface Props {
@@ -31,6 +30,7 @@ const ProductCard = ({
   textColor = '#2C3E50',
 }: Props) => {
   const opacity = useRef(new Animated.Value(0)).current;
+  const [imgError, setImgError] = useState(false);
 
   useEffect(() => {
     Animated.timing(opacity, {
@@ -55,12 +55,17 @@ const ProductCard = ({
         { backgroundColor: cardBackground, opacity },
       ]}
     >
-      {/* Vùng hiển thị hình ảnh sản phẩm */}
+      {/* Vùng hiển thị hình ảnh sản phẩm với chiều cao cố định rõ ràng cho Android */}
       <View style={styles.imageContainer}>
         <Image
-          source={{ uri: product.image }}
+          source={{
+            uri: imgError
+              ? `https://picsum.photos/seed/${product.id}/300/300`
+              : product.image,
+          }}
           style={styles.image}
           resizeMode="cover"
+          onError={() => setImgError(true)}
         />
       </View>
 
@@ -105,14 +110,13 @@ const styles = StyleSheet.create({
     width: '100%',
     height: 120,
     borderRadius: 10,
-    backgroundColor: '#F8F9FA',
+    backgroundColor: '#F0F2F5',
     overflow: 'hidden',
-    justifyContent: 'center',
-    alignItems: 'center',
   },
   image: {
     width: '100%',
-    height: '100%',
+    height: 120,
+    borderRadius: 10,
   },
   infoContainer: {
     paddingTop: 8,
