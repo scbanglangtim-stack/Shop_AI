@@ -85,7 +85,6 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     paddingHorizontal: SIZES.padding,
-    width: '100%',
     ...SHADOWS.light,
   },
   secondary: {

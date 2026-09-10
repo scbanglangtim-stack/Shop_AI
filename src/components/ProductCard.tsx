@@ -8,6 +8,7 @@ import {
   Dimensions,
   Animated,
   Alert,
+  Pressable,
   ImageSourcePropType,
 } from 'react-native';
 import { COLORS, SIZES } from '@constants/theme';
@@ -20,6 +21,7 @@ const CARD_WIDTH = (width - 36) / 2;
 
 interface Props {
   product: Product;
+  onPress?: (product: Product) => void;
   onPressBuy?: (product: Product) => void;
   cardBackground?: string;
   textColor?: string;
@@ -27,6 +29,7 @@ interface Props {
 
 const ProductCard = ({
   product,
+  onPress,
   onPressBuy,
   cardBackground = '#FFFFFF',
   textColor = '#2C3E50',
@@ -40,6 +43,14 @@ const ProductCard = ({
       useNativeDriver: true,
     }).start();
   }, [opacity]);
+
+  const handleCardPress = () => {
+    if (onPress) {
+      onPress(product);
+    } else if (onPressBuy) {
+      onPressBuy(product);
+    }
+  };
 
   const handleBuy = () => {
     if (onPressBuy) {
@@ -57,27 +68,29 @@ const ProductCard = ({
 
   return (
     <Animated.View style={[styles.card, { backgroundColor: cardBackground, opacity }]}>
-      {/* Vùng hiển thị hình ảnh sản phẩm với kích thước chuẩn */}
-      <View style={styles.imageContainer}>
-        <Image source={imageSource} style={styles.image} resizeMode="cover" />
-      </View>
+      <Pressable onPress={handleCardPress}>
+        {/* Vùng hiển thị hình ảnh sản phẩm với kích thước chuẩn */}
+        <View style={styles.imageContainer}>
+          <Image source={imageSource} style={styles.image} resizeMode="cover" />
+        </View>
 
-      {/* Thông tin sản phẩm */}
-      <View style={styles.infoContainer}>
-        <Text style={[styles.name, { color: textColor }]} numberOfLines={2}>
-          {product.name}
-        </Text>
+        {/* Thông tin sản phẩm */}
+        <View style={styles.infoContainer}>
+          <Text style={[styles.name, { color: textColor }]} numberOfLines={2}>
+            {product.name}
+          </Text>
 
-        <Text style={styles.price}>{product.price.toLocaleString('vi-VN')} đ</Text>
+          <Text style={styles.price}>{product.price.toLocaleString('vi-VN')} đ</Text>
 
-        {/* Nút bấm Mua ngay tái sử dụng ShopButton từ Chương 3 */}
-        <ShopButton
-          title="Mua ngay"
-          onPress={handleBuy}
-          style={styles.buyBtn}
-          textStyle={styles.buyBtnText}
-        />
-      </View>
+          {/* Nút bấm Mua ngay */}
+          <ShopButton
+            title="Mua ngay"
+            onPress={handleBuy}
+            style={styles.buyBtn}
+            textStyle={styles.buyBtnText}
+          />
+        </View>
+      </Pressable>
     </Animated.View>
   );
 };
@@ -130,10 +143,12 @@ const styles = StyleSheet.create({
     borderRadius: 8,
     backgroundColor: '#FF4D4F',
     paddingHorizontal: 0,
+    width: '100%',
   },
   buyBtnText: {
     fontSize: 13,
     fontWeight: '700',
+    color: '#FFFFFF',
   },
 });
 

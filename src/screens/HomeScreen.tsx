@@ -72,10 +72,10 @@ const HomeScreen = ({ onLogout }: HomeScreenProps) => {
       <View style={styles.topBar}>
         <View style={styles.brandBox}>
           <Typography variant="h1" color={colors.primary}>
-            ShopAI
+            ShopAI Store
           </Typography>
           <Typography variant="caption" color={colors.textLight}>
-            Thương Mại Điện Tử Thông Minh
+            Thế giới công nghệ AI đỉnh cao
           </Typography>
         </View>
 
@@ -87,17 +87,19 @@ const HomeScreen = ({ onLogout }: HomeScreenProps) => {
             ]}
             onPress={toggleTheme}
           >
-            <Text style={styles.themePillText}>{isDark ? '☀️ Sáng' : '🌙 Tối'}</Text>
+            <Text style={styles.themePillText}>{isDark ? '☀️ Light' : '🌙 Dark'}</Text>
           </Pressable>
 
           {onLogout && (
-            <ShopButton
-              title="Thoát"
-              variant="outline"
+            <Pressable
+              style={[
+                styles.logoutPill,
+                { backgroundColor: colors.surface, borderColor: COLORS.danger },
+              ]}
               onPress={onLogout}
-              style={styles.logoutBtn}
-              textStyle={{ fontSize: 13, color: COLORS.danger }}
-            />
+            >
+              <Text style={styles.logoutPillText}>🚪 Thoát</Text>
+            </Pressable>
           )}
         </View>
       </View>
@@ -223,14 +225,13 @@ const HomeScreen = ({ onLogout }: HomeScreenProps) => {
           </View>
         }
         renderItem={({ item }) => (
-          <Pressable onPress={() => handleOpenDetail(item.id)}>
-            <ProductCard
-              product={item}
-              onPressBuy={() => handleOpenDetail(item.id)}
-              cardBackground={colors.card}
-              textColor={colors.text}
-            />
-          </Pressable>
+          <ProductCard
+            product={item}
+            onPress={() => handleOpenDetail(item.id)}
+            onPressBuy={() => handleOpenDetail(item.id)}
+            cardBackground={colors.card}
+            textColor={colors.text}
+          />
         )}
       />
     </SafeAreaView>
@@ -251,6 +252,7 @@ const styles = StyleSheet.create({
   },
   brandBox: {
     flex: 1,
+    paddingRight: 8,
   },
   headerActions: {
     flexDirection: 'row',
@@ -269,10 +271,17 @@ const styles = StyleSheet.create({
     fontSize: 12,
     color: COLORS.primary,
   },
-  logoutBtn: {
-    height: 34,
+  logoutPill: {
     paddingHorizontal: 12,
-    borderColor: COLORS.danger,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+    ...SHADOWS.light,
+  },
+  logoutPillText: {
+    fontWeight: '700',
+    fontSize: 12,
+    color: COLORS.danger,
   },
   searchBox: {
     flexDirection: 'row',
