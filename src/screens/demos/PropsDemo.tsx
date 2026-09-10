@@ -12,9 +12,7 @@ function ProductCard({ title, price, isDiscount }: ProductCardProps) {
   return (
     <View style={styles.card}>
       <Text style={styles.title}>{title}</Text>
-      <Text style={[styles.price, isDiscount && styles.priceSale]}>
-        {price} VNĐ
-      </Text>
+      <Text style={[styles.price, isDiscount && styles.priceSale]}>{price} VNĐ</Text>
     </View>
   );
 }
@@ -32,7 +30,13 @@ export default function PropsDemo() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 16, backgroundColor: '#F5F5F5', justifyContent: 'center' },
-  heading: { fontSize: 18, fontWeight: '700', marginBottom: 12, color: '#2C3E50', textAlign: 'center' },
+  heading: {
+    fontSize: 18,
+    fontWeight: '700',
+    marginBottom: 12,
+    color: '#2C3E50',
+    textAlign: 'center',
+  },
   card: {
     backgroundColor: '#fff',
     padding: 14,

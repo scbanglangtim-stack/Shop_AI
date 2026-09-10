@@ -1,11 +1,5 @@
 import React, { useState } from 'react';
-import {
-  View,
-  Text,
-  ScrollView,
-  Pressable,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, ScrollView, Pressable, StyleSheet } from 'react-native';
 
 type FlexDirectionType = 'column' | 'row';
 type JustifyContentType = 'flex-start' | 'center' | 'space-between' | 'space-around' | 'flex-end';
@@ -40,9 +34,7 @@ export default function FlexboxDemo() {
               style={[styles.optBtn, direction === d && styles.optBtnActive]}
               onPress={() => setDirection(d)}
             >
-              <Text style={[styles.optText, direction === d && styles.optTextActive]}>
-                {d}
-              </Text>
+              <Text style={[styles.optText, direction === d && styles.optTextActive]}>{d}</Text>
             </Pressable>
           ))}
         </View>
@@ -58,9 +50,7 @@ export default function FlexboxDemo() {
               style={[styles.optBtn, justify === j && styles.optBtnActive]}
               onPress={() => setJustify(j)}
             >
-              <Text style={[styles.optText, justify === j && styles.optTextActive]}>
-                {j}
-              </Text>
+              <Text style={[styles.optText, justify === j && styles.optTextActive]}>{j}</Text>
             </Pressable>
           ))}
         </View>
@@ -76,9 +66,7 @@ export default function FlexboxDemo() {
               style={[styles.optBtn, align === a && styles.optBtnActive]}
               onPress={() => setAlign(a)}
             >
-              <Text style={[styles.optText, align === a && styles.optTextActive]}>
-                {a}
-              </Text>
+              <Text style={[styles.optText, align === a && styles.optTextActive]}>{a}</Text>
             </Pressable>
           ))}
         </View>
@@ -118,7 +106,13 @@ export default function FlexboxDemo() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
   content: { padding: 16, paddingBottom: 40 },
-  header: { fontSize: 20, fontWeight: '800', color: '#FF4D4F', textAlign: 'center', marginBottom: 16 },
+  header: {
+    fontSize: 20,
+    fontWeight: '800',
+    color: '#FF4D4F',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
   controlSection: {
     backgroundColor: '#FFF',
     padding: 12,

@@ -10,16 +10,10 @@ export default function StateDemo() {
       <Text style={styles.header}>Demo State: Tăng giảm số lượng</Text>
       <Text style={styles.label}>Số lượng hiện tại: {quantity}</Text>
       <View style={styles.row}>
-        <Pressable
-          style={styles.btn}
-          onPress={() => setQuantity(prev => Math.max(1, prev - 1))}
-        >
+        <Pressable style={styles.btn} onPress={() => setQuantity(prev => Math.max(1, prev - 1))}>
           <Text style={styles.btnText}>−</Text>
         </Pressable>
-        <Pressable
-          style={styles.btn}
-          onPress={() => setQuantity(prev => prev + 1)}
-        >
+        <Pressable style={styles.btn} onPress={() => setQuantity(prev => prev + 1)}>
           <Text style={styles.btnText}>+</Text>
         </Pressable>
       </View>

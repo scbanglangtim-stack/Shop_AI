@@ -14,11 +14,10 @@ import {
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useTheme } from '@contexts/ThemeContext';
 import Typography from '@components/ui/Typography';
-import ShopButton from '@components/ui/ShopButton';
 import ProductCard from '@components/ProductCard';
 import { MOCK_PRODUCTS, Product } from '@data/mockProducts';
 import { useCountdown } from '@hooks/useCountdown';
-import { SIZES, COLORS } from '@constants/theme';
+import { COLORS } from '@constants/theme';
 
 const CATEGORIES = ['Tất cả', 'Điện thoại', 'Tai nghe', 'Đồng hồ', 'Phụ kiện', 'Laptop'];
 
@@ -45,11 +44,8 @@ const HomeScreenSprint4 = () => {
   // Lọc sản phẩm theo Category và từ khóa tìm kiếm
   const filteredProducts = useMemo(() => {
     return products.filter(p => {
-      const matchCat =
-        selectedCategory === 'Tất cả' || p.category === selectedCategory;
-      const matchSearch = p.name
-        .toLowerCase()
-        .includes(search.trim().toLowerCase());
+      const matchCat = selectedCategory === 'Tất cả' || p.category === selectedCategory;
+      const matchSearch = p.name.toLowerCase().includes(search.trim().toLowerCase());
       return matchCat && matchSearch;
     });
   }, [products, selectedCategory, search]);
@@ -76,21 +72,19 @@ const HomeScreenSprint4 = () => {
         </View>
 
         <Pressable
-          style={[styles.themePill, { backgroundColor: colors.surface, borderColor: colors.border }]}
+          style={[
+            styles.themePill,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
           onPress={toggleTheme}
         >
-          <Text style={styles.themePillText}>
-            {isDark ? '☀️ Light' : '🌙 Dark'}
-          </Text>
+          <Text style={styles.themePillText}>{isDark ? '☀️ Light' : '🌙 Dark'}</Text>
         </Pressable>
       </View>
 
       {/* 2. Thanh tìm kiếm hiện đại */}
       <View
-        style={[
-          styles.searchBox,
-          { backgroundColor: colors.surface, borderColor: colors.border },
-        ]}
+        style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
@@ -115,9 +109,7 @@ const HomeScreenSprint4 = () => {
         </View>
         <View style={styles.flashTimerBox}>
           <Text style={styles.timerLabel}>Kết thúc trong</Text>
-          <Text style={styles.timerValue}>
-            {isFinished ? '00:00' : formattedTime}
-          </Text>
+          <Text style={styles.timerValue}>{isFinished ? '00:00' : formattedTime}</Text>
         </View>
       </View>
 
@@ -140,9 +132,7 @@ const HomeScreenSprint4 = () => {
                 style={[
                   styles.catPill,
                   {
-                    backgroundColor: isActive
-                      ? colors.primary
-                      : colors.surface,
+                    backgroundColor: isActive ? colors.primary : colors.surface,
                     borderColor: isActive ? colors.primary : colors.border,
                   },
                 ]}

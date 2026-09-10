@@ -3,34 +3,35 @@
 import { useState, useEffect, useCallback } from 'react';
 
 export const useCountdown = (initialSeconds: number) => {
-  const [seconds, setSeconds] = useState(initialSeconds);
+  const [timeLeft, setTimeLeft] = useState(initialSeconds);
 
   useEffect(() => {
-    if (seconds <= 0) return;
+    if (timeLeft <= 0) return;
 
-    const interval = setInterval(() => {
-      setSeconds(prev => Math.max(0, prev - 1));
+    const timer = setInterval(() => {
+      setTimeLeft(prev => Math.max(0, prev - 1));
     }, 1000);
 
     // Dọn dẹp RAM tránh Memory Leak khi component unmount
-    return () => clearInterval(interval);
-  }, [seconds]);
+    return () => clearInterval(timer);
+  }, [timeLeft]);
 
   const reset = useCallback(() => {
-    setSeconds(initialSeconds);
+    setTimeLeft(initialSeconds);
   }, [initialSeconds]);
 
-  // Format sang chuỗi MM:SS hiển thị đẹp mắt
+  // Format sang chuỗi MM:SS
   const formatTime = () => {
-    const mins = Math.floor(seconds / 60);
-    const secs = seconds % 60;
+    const mins = Math.floor(timeLeft / 60);
+    const secs = timeLeft % 60;
     return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
   };
 
   return {
-    seconds,
+    timeLeft,
+    seconds: timeLeft,
     formattedTime: formatTime(),
-    isFinished: seconds === 0,
+    isFinished: timeLeft === 0,
     reset,
   };
 };

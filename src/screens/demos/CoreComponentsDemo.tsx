@@ -81,7 +81,7 @@ export default function CoreComponentsDemo() {
       {/* 5 & 6: Pressable, Switch, Alert & Modal */}
       <View style={styles.section}>
         <Text style={styles.sectionTitle}>5, 6, 10, 11, 12: Tương tác & Sự kiện</Text>
-        
+
         <View style={styles.rowBetween}>
           <Text style={styles.label}>Công tắc Switch (Đổi trạng thái):</Text>
           <Switch
@@ -97,7 +97,10 @@ export default function CoreComponentsDemo() {
             <Text style={styles.btnText}>Bật Alert</Text>
           </Pressable>
 
-          <Pressable style={[styles.btn, styles.btnSecondary]} onPress={() => setModalVisible(true)}>
+          <Pressable
+            style={[styles.btn, styles.btnSecondary]}
+            onPress={() => setModalVisible(true)}
+          >
             <Text style={styles.btnText}>Mở Modal</Text>
           </Pressable>
         </View>
@@ -173,10 +176,7 @@ export default function CoreComponentsDemo() {
             <Text style={styles.modalBody}>
               Đây là hộp thoại Modal native tùy biến của React Native!
             </Text>
-            <Pressable
-              style={styles.modalCloseBtn}
-              onPress={() => setModalVisible(false)}
-            >
+            <Pressable style={styles.modalCloseBtn} onPress={() => setModalVisible(false)}>
               <Text style={styles.btnText}>Đóng Modal</Text>
             </Pressable>
           </View>
@@ -189,7 +189,13 @@ export default function CoreComponentsDemo() {
 const styles = StyleSheet.create({
   container: { flex: 1, backgroundColor: '#F5F5F5' },
   content: { padding: 16, paddingBottom: 40 },
-  header: { fontSize: 22, fontWeight: '800', color: '#FF4D4F', textAlign: 'center', marginBottom: 16 },
+  header: {
+    fontSize: 22,
+    fontWeight: '800',
+    color: '#FF4D4F',
+    textAlign: 'center',
+    marginBottom: 16,
+  },
   section: {
     backgroundColor: '#FFFFFF',
     borderRadius: 14,
@@ -210,7 +216,12 @@ const styles = StyleSheet.create({
     color: '#333',
   },
   preview: { marginTop: 8, fontSize: 13, color: '#7F8C8D', fontStyle: 'italic' },
-  rowBetween: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 12 },
+  rowBetween: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 12,
+  },
   label: { fontSize: 14, color: '#2C3E50' },
   buttonRow: { flexDirection: 'row', gap: 10 },
   btn: {

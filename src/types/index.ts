@@ -1,4 +1,14 @@
+// src/types/index.ts
+// Khai báo các Type & Interface dùng chung toàn dự án ShopAI
+
 export interface Post {
+  id: number;
+  title: string;
+  body: string;
+  userId?: number;
+}
+
+export interface PostItem {
   id: number;
   title: string;
   body: string;

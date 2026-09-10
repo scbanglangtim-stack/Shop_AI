@@ -45,29 +45,21 @@ const ProductCard = ({
     if (onPressBuy) {
       onPressBuy(product);
     } else {
-      Alert.alert('🛒 Đã chọn sản phẩm', `${product.name}\nGiá: ${product.price.toLocaleString('vi-VN')} đ`);
+      Alert.alert(
+        '🛒 Đã chọn sản phẩm',
+        `${product.name}\nGiá: ${product.price.toLocaleString('vi-VN')} đ`,
+      );
     }
   };
 
   const imageSource: ImageSourcePropType =
-    typeof product.image === 'string'
-      ? { uri: product.image }
-      : product.image;
+    typeof product.image === 'string' ? { uri: product.image } : product.image;
 
   return (
-    <Animated.View
-      style={[
-        styles.card,
-        { backgroundColor: cardBackground, opacity },
-      ]}
-    >
+    <Animated.View style={[styles.card, { backgroundColor: cardBackground, opacity }]}>
       {/* Vùng hiển thị hình ảnh sản phẩm với kích thước chuẩn */}
       <View style={styles.imageContainer}>
-        <Image
-          source={imageSource}
-          style={styles.image}
-          resizeMode="cover"
-        />
+        <Image source={imageSource} style={styles.image} resizeMode="cover" />
       </View>
 
       {/* Thông tin sản phẩm */}
@@ -76,9 +68,7 @@ const ProductCard = ({
           {product.name}
         </Text>
 
-        <Text style={styles.price}>
-          {product.price.toLocaleString('vi-VN')} đ
-        </Text>
+        <Text style={styles.price}>{product.price.toLocaleString('vi-VN')} đ</Text>
 
         {/* Nút bấm Mua ngay tái sử dụng ShopButton từ Chương 3 */}
         <ShopButton

@@ -6,21 +6,27 @@ import { COLORS } from '@constants/theme';
 export const LIGHT_COLORS = {
   background: COLORS.background,
   surface: COLORS.surface,
+  card: COLORS.surface,
   text: COLORS.text,
   textLight: COLORS.textLight,
   primary: COLORS.primary,
+  secondary: COLORS.secondary,
   border: COLORS.border,
-  card: '#FFFFFF',
+  cardBorder: '#EFEFEF',
+  badgeBg: '#FFF0F0',
 };
 
 export const DARK_COLORS = {
   background: '#121212',
   surface: '#1E1E1E',
+  card: '#1E1E1E',
   text: '#F5F5F5',
   textLight: '#9BA1A6',
   primary: COLORS.primary,
+  secondary: COLORS.secondary,
   border: '#2C2C2C',
-  card: '#1E1E1E',
+  cardBorder: '#333333',
+  badgeBg: '#3A1E1E',
 };
 
 export interface ThemeContextValue {
@@ -40,11 +46,7 @@ export const ThemeProvider = ({ children }: { children: ReactNode }) => {
     toggleTheme: () => setIsDark(prev => !prev),
   };
 
-  return (
-    <ThemeContext.Provider value={value}>
-      {children}
-    </ThemeContext.Provider>
-  );
+  return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
 };
 
 export const useTheme = (): ThemeContextValue => {

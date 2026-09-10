@@ -124,7 +124,11 @@ const HomeScreenSprint3 = () => {
           </View>
 
           <ShopButton
-            title={isFinished ? 'Hết thời gian Flash Sale' : `Mua ngay • ${(1490000 * quantity).toLocaleString('vi-VN')} đ`}
+            title={
+              isFinished
+                ? 'Hết thời gian Flash Sale'
+                : `Mua ngay • ${(1490000 * quantity).toLocaleString('vi-VN')} đ`
+            }
             disabled={isFinished}
             onPress={() => Alert.alert('Thành công', `Đã đặt mua ${quantity} sản phẩm!`)}
             style={styles.buyBtn}
@@ -165,11 +169,21 @@ const HomeScreenSprint3 = () => {
           <Typography variant="h3" color={colors.text} style={{ marginBottom: 8 }}>
             📐 Bảng Typography Tokens
           </Typography>
-          <Typography variant="h1" color={colors.text}>Heading 1 (28px Bold)</Typography>
-          <Typography variant="h2" color={colors.text}>Heading 2 (22px Bold)</Typography>
-          <Typography variant="h3" color={colors.text}>Heading 3 (18px Bold)</Typography>
-          <Typography variant="body" color={colors.text}>Body Text (14px Regular)</Typography>
-          <Typography variant="caption" color={colors.textLight}>Caption Text (12px Muted)</Typography>
+          <Typography variant="h1" color={colors.text}>
+            Heading 1 (28px Bold)
+          </Typography>
+          <Typography variant="h2" color={colors.text}>
+            Heading 2 (22px Bold)
+          </Typography>
+          <Typography variant="h3" color={colors.text}>
+            Heading 3 (18px Bold)
+          </Typography>
+          <Typography variant="body" color={colors.text}>
+            Body Text (14px Regular)
+          </Typography>
+          <Typography variant="caption" color={colors.textLight}>
+            Caption Text (12px Muted)
+          </Typography>
         </View>
       </ScrollView>
     </SafeAreaView>

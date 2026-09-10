@@ -1,12 +1,5 @@
 import React, { useRef } from 'react';
-import {
-  View,
-  Text,
-  Animated,
-  ScrollView,
-  StyleSheet,
-  Dimensions,
-} from 'react-native';
+import { View, Text, Animated, ScrollView, StyleSheet, Dimensions } from 'react-native';
 import { COLORS } from '@constants/theme';
 
 const HEADER_MAX_HEIGHT = 140;
@@ -39,24 +32,19 @@ export default function CollapsingHeaderDemo() {
     <View style={styles.container}>
       {/* Animated Collapsing Header */}
       <Animated.View style={[styles.header, { height: headerHeight }]}>
-        <Animated.Text
-          style={[styles.headerTitle, { opacity: headerTitleOpacity }]}
-        >
+        <Animated.Text style={[styles.headerTitle, { opacity: headerTitleOpacity }]}>
           ShopAI Collapsing Header
         </Animated.Text>
-        <Text style={styles.headerSubtitle}>
-          Cuộn danh sách xuống để xem Header co lại
-        </Text>
+        <Text style={styles.headerSubtitle}>Cuộn danh sách xuống để xem Header co lại</Text>
       </Animated.View>
 
       {/* Danh sách cuộn */}
       <Animated.ScrollView
         contentContainerStyle={styles.scrollContent}
         scrollEventThrottle={16}
-        onScroll={Animated.event(
-          [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-          { useNativeDriver: false },
-        )}
+        onScroll={Animated.event([{ nativeEvent: { contentOffset: { y: scrollY } } }], {
+          useNativeDriver: false,
+        })}
       >
         {Array.from({ length: 20 }).map((_, index) => (
           <View key={index} style={styles.card}>

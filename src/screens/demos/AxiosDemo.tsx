@@ -1,12 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import {
-  View,
-  Text,
-  FlatList,
-  ActivityIndicator,
-  Pressable,
-  StyleSheet,
-} from 'react-native';
+import { View, Text, FlatList, ActivityIndicator, Pressable, StyleSheet } from 'react-native';
 import { Post } from '@types';
 import { fetchPostsWithAxios } from '@services/api';
 
@@ -81,7 +74,13 @@ export default function AxiosDemo() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, backgroundColor: '#F5F5F5', padding: 16 },
-  header: { fontSize: 18, fontWeight: '700', color: '#2C3E50', marginBottom: 12, textAlign: 'center' },
+  header: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#2C3E50',
+    marginBottom: 12,
+    textAlign: 'center',
+  },
   reloadBtn: {
     backgroundColor: '#3498DB',
     paddingVertical: 12,
@@ -94,7 +93,12 @@ const styles = StyleSheet.create({
   centerBox: { flex: 1, justifyContent: 'center', alignItems: 'center' },
   statusText: { marginTop: 12, color: '#7F8C8D', fontSize: 15 },
   errorText: { color: '#E74C3C', fontSize: 16, fontWeight: '700', marginBottom: 12 },
-  retryBtn: { backgroundColor: '#34495E', paddingHorizontal: 20, paddingVertical: 10, borderRadius: 8 },
+  retryBtn: {
+    backgroundColor: '#34495E',
+    paddingHorizontal: 20,
+    paddingVertical: 10,
+    borderRadius: 8,
+  },
   list: { paddingBottom: 24 },
   card: {
     backgroundColor: '#FFF',

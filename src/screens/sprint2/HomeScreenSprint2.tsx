@@ -118,7 +118,12 @@ const HomeScreenSprint2 = () => {
 
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: '#F5F5F5' },
-  header: { padding: 16, backgroundColor: '#FFFFFF', borderBottomWidth: 1, borderBottomColor: '#EAEAEA' },
+  header: {
+    padding: 16,
+    backgroundColor: '#FFFFFF',
+    borderBottomWidth: 1,
+    borderBottomColor: '#EAEAEA',
+  },
   brand: { fontSize: 28, fontWeight: '800', color: '#FF4D4F' },
   caption: { color: '#7F8C8D', marginTop: 4, fontSize: 14 },
   banner: { width: '100%', height: 130, borderRadius: 12, marginTop: 12 },

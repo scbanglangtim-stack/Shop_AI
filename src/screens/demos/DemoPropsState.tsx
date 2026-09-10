@@ -44,9 +44,7 @@ export default function DemoPropsState() {
       />
       <View style={styles.totalBox}>
         <Text style={styles.totalLabel}>Tạm tính thành tiền:</Text>
-        <Text style={styles.totalValue}>
-          {(price * quantity).toLocaleString('vi-VN')} VNĐ
-        </Text>
+        <Text style={styles.totalValue}>{(price * quantity).toLocaleString('vi-VN')} VNĐ</Text>
       </View>
     </View>
   );
@@ -54,7 +52,13 @@ export default function DemoPropsState() {
 
 const styles = StyleSheet.create({
   screen: { flex: 1, padding: 16, justifyContent: 'center', backgroundColor: '#F5F5F5' },
-  header: { fontSize: 20, fontWeight: '700', marginBottom: 16, textAlign: 'center', color: '#2C3E50' },
+  header: {
+    fontSize: 20,
+    fontWeight: '700',
+    marginBottom: 16,
+    textAlign: 'center',
+    color: '#2C3E50',
+  },
   card: { backgroundColor: '#fff', borderRadius: 14, padding: 18, elevation: 4 },
   name: { fontSize: 20, fontWeight: '800', color: '#2C3E50' },
   price: { marginTop: 6, color: '#7F8C8D', fontSize: 16 },
