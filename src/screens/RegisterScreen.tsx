@@ -1,17 +1,15 @@
 // src/screens/RegisterScreen.tsx
-// Màn hình Đăng ký tài khoản trong AuthStack (Chương 5 Sprint 5)
+// Màn hình Đăng ký tài khoản trong AuthStack & Zustand (Chương 5.2 & 6.3)
 import React, { useState } from 'react';
 import { Text, StyleSheet, Pressable, ScrollView } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import ShopButton from '@components/ShopButton';
 import ShopInput from '@components/ui/ShopInput';
 import { COLORS, SIZES } from '@constants/theme';
+import { useAuthStore } from '@store/useAuthStore';
 
-interface RegisterScreenProps {
-  onRegistered: (token: string) => void;
-  onGoLogin: () => void;
-}
-
-const RegisterScreen = ({ onRegistered, onGoLogin }: RegisterScreenProps) => {
+const RegisterScreen = () => {
+  const navigation = useNavigation<any>();
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
@@ -23,6 +21,8 @@ const RegisterScreen = ({ onRegistered, onGoLogin }: RegisterScreenProps) => {
     confirm?: string;
   }>({});
   const [loading, setLoading] = useState(false);
+
+  const login = useAuthStore((state) => state.login);
 
   const validate = () => {
     const next: typeof errors = {};
@@ -45,10 +45,10 @@ const RegisterScreen = ({ onRegistered, onGoLogin }: RegisterScreenProps) => {
   const handleRegister = () => {
     if (!validate()) return;
     setLoading(true);
-    // Ch.5: Giả lập đăng ký thành công -> cấp token
+    // Giả lập đăng ký thành công -> cấp token vào Zustand
     setTimeout(() => {
       setLoading(false);
-      onRegistered('mock_token_123');
+      login('mock_token_123');
     }, 1000);
   };
 
@@ -104,7 +104,7 @@ const RegisterScreen = ({ onRegistered, onGoLogin }: RegisterScreenProps) => {
         style={styles.submitBtn}
       />
 
-      <Pressable onPress={onGoLogin} style={styles.loginLink}>
+      <Pressable onPress={() => navigation.navigate('Login')} style={styles.loginLink}>
         <Text style={styles.loginLinkText}>
           Đã có tài khoản? <Text style={styles.loginLinkBold}>Đăng nhập</Text>
         </Text>

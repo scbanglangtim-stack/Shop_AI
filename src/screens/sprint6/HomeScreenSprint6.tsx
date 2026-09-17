@@ -1,5 +1,5 @@
-// src/screens/HomeScreen.tsx
-// Màn hình Trang Chủ ShopAI - Phân trang useInfiniteQuery, Zod Schema & Zustand (Chương 6)
+// src/screens/sprint6/HomeScreenSprint6.tsx
+// Màn hình nghiệm thu hoàn chỉnh Sprint 6 (Chương 6 - State Management & Server State)
 import React, { useState, useMemo } from 'react';
 import {
   View,
@@ -8,7 +8,6 @@ import {
   RefreshControl,
   Pressable,
   StyleSheet,
-  StatusBar,
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
@@ -23,7 +22,7 @@ import { useCountdown } from '@hooks/useCountdown';
 import { COLORS, SIZES, SHADOWS } from '@constants/theme';
 import { useAuthStore } from '@store/useAuthStore';
 import { useCartStore } from '@store/useCartStore';
-import { Product, ProductListSchema } from '../types/product.schema';
+import { Product, ProductListSchema } from '../../types/product.schema';
 
 const CATEGORIES = ['Tất cả', 'Điện thoại', 'Tai nghe', 'Đồng hồ', 'Phụ kiện'];
 const PAGE_SIZE = 10;
@@ -51,12 +50,6 @@ const MOCK_IMAGE_LIST = [
 const fetchProductsPage = async ({ pageParam = 1 }: { pageParam?: number }): Promise<ProductPage> => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
-      // Giả lập ngẫu nhiên ~5% khả năng mất kết nối mạng để kiểm thử UI lỗi
-      if (Math.random() < 0.05) {
-        reject(new NetworkError('Mất kết nối mạng, vui lòng thử lại!'));
-        return;
-      }
-
       const start = (pageParam - 1) * PAGE_SIZE;
       const rawItems = Array.from({ length: PAGE_SIZE })
         .map((_, i) => {
@@ -76,10 +69,8 @@ const fetchProductsPage = async ({ pageParam = 1 }: { pageParam?: number }): Pro
         })
         .filter((item): item is NonNullable<typeof item> => item !== null);
 
-      // TRẠM KIỂM SOÁT ZOD SCHEMA
       const result = ProductListSchema.safeParse(rawItems);
       if (!result.success) {
-        console.error('❌ Zod chặn dữ liệu bẩn từ API:', result.error.format());
         reject(new ZodValidationError('Dữ liệu sản phẩm không hợp lệ (Zod validation failed)!'));
         return;
       }
@@ -93,7 +84,7 @@ const fetchProductsPage = async ({ pageParam = 1 }: { pageParam?: number }): Pro
   });
 };
 
-const HomeScreen = () => {
+const HomeScreenSprint6 = () => {
   const navigation = useNavigation<any>();
   const { colors, isDark, toggleTheme } = useTheme();
   const logout = useAuthStore((state) => state.logout);
@@ -102,10 +93,8 @@ const HomeScreen = () => {
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
 
-  // Flash Sale đếm ngược 5 phút
   const { formattedTime, isFinished } = useCountdown(300);
 
-  // TanStack useInfiniteQuery - Vũ khí phân trang & Caching tối thượng
   const {
     data,
     isLoading,
@@ -127,7 +116,6 @@ const HomeScreen = () => {
     return data?.pages.flatMap((page) => page.items) ?? [];
   }, [data]);
 
-  // Lọc sản phẩm theo danh mục và từ khóa tìm kiếm
   const filteredProducts = useMemo(() => {
     return allProducts.filter((p) => {
       const matchCat = selectedCategory === 'Tất cả' || p.category === selectedCategory;
@@ -142,19 +130,18 @@ const HomeScreen = () => {
 
   const errorMessage =
     error instanceof ZodValidationError
-      ? '⚠️ Dữ liệu sản phẩm không hợp lệ (Lỗi Zod Validation) — vui lòng báo kỹ thuật viên!'
-      : '📡 Lỗi kết nối mạng — vui lòng kéo xuống để thử lại!';
+      ? '⚠️ Dữ liệu sản phẩm không hợp lệ (Zod Validation Error)!'
+      : '📡 Lỗi kết nối mạng — vui lòng thử lại!';
 
   const renderHeader = () => (
     <View style={styles.headerContainer}>
-      {/* 1. Thanh tiêu đề & nút chuyển theme & nút Đăng xuất */}
       <View style={styles.topBar}>
         <View style={styles.brandBox}>
           <Typography variant="h1" color={colors.primary}>
             ShopAI Store
           </Typography>
           <Typography variant="caption" color={colors.textLight}>
-            Thế giới công nghệ AI & State Management
+            Sprint 6: Zustand, Query, Zod, Persist & Redux
           </Typography>
         </View>
 
@@ -181,7 +168,6 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      {/* 2. Thanh nút Giỏ hàng nổi bật & Redux Demo link */}
       <View style={styles.cartActionRow}>
         <ShopButton
           title={`🛒 Giỏ hàng (${totalQuantity})`}
@@ -197,7 +183,6 @@ const HomeScreen = () => {
         />
       </View>
 
-      {/* 3. Thanh tìm kiếm */}
       <View
         style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >
@@ -216,7 +201,6 @@ const HomeScreen = () => {
         )}
       </View>
 
-      {/* 4. Banner Flash Sale */}
       <View style={[styles.flashBanner, { backgroundColor: colors.primary }]}>
         <View style={styles.flashLeft}>
           <Text style={styles.flashTitle}>⚡ FLASH SALE HÔM NAY</Text>
@@ -228,7 +212,6 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      {/* 5. Bộ lọc danh mục */}
       <View style={styles.categorySection}>
         <Typography variant="h3" color={colors.text} style={styles.sectionTitle}>
           Danh mục nổi bật
@@ -265,7 +248,6 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      {/* 6. Tiêu đề danh sách */}
       <View style={styles.listHeaderRow}>
         <Typography variant="h3" color={colors.text}>
           Gợi ý cho bạn ({filteredProducts.length} sản phẩm)
@@ -279,8 +261,6 @@ const HomeScreen = () => {
       style={[styles.safe, { backgroundColor: colors.background }]}
       edges={['top', 'left', 'right']}
     >
-      <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
-
       {isLoading && (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color={colors.primary} />
@@ -315,17 +295,6 @@ const HomeScreen = () => {
               colors={[colors.primary]}
               tintColor={colors.primary}
             />
-          }
-          ListEmptyComponent={
-            <View style={styles.emptyContainer}>
-              <Text style={styles.emptyEmoji}>🔎</Text>
-              <Typography variant="h3" color={colors.text}>
-                Không tìm thấy sản phẩm
-              </Typography>
-              <Typography variant="body2" color={colors.textLight} style={{ marginTop: 6 }}>
-                Thử tìm kiếm với từ khóa khác hoặc đổi danh mục.
-              </Typography>
-            </View>
           }
           renderItem={({ item }) => (
             <Pressable onPress={() => handleOpenDetail(item.id)}>
@@ -455,4 +424,4 @@ const styles = StyleSheet.create({
   footerLoadingText: { fontSize: 12 },
 });
 
-export default HomeScreen;
+export default HomeScreenSprint6;

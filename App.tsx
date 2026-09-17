@@ -1,69 +1,78 @@
-// App.tsx - Cấu hình Tối Thượng: Auth Flow State Machine, React Navigation V7 & Deep Linking
-import React, { useState } from 'react';
+// App.tsx
+// Cấu hình Toàn diện: React Query, Redux Toolkit, Zustand Auth/Cart/Orders, ThemeContext & React Navigation
+import React from 'react';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
+import { Provider as ReduxProvider } from 'react-redux';
 import { ThemeProvider } from '@contexts/ThemeContext';
 import LoginScreen from '@screens/LoginScreen';
 import RegisterScreen from '@screens/RegisterScreen';
-import MainTabNavigator from '@navigation/MainTabNavigator';
+import RootStackNavigator from '@navigation/RootStackNavigator';
+import { useAuthStore } from '@store/useAuthStore';
+import { reduxStore } from '@store/redux/store';
 
-// 1. AuthStack cho luồng Chưa xác thực (Login & Register)
+// 1. Cấu hình TanStack Query Client
+const queryClient = new QueryClient({
+  defaultOptions: {
+    queries: {
+      staleTime: 1000 * 60 * 5, // Dữ liệu được coi là "Tươi" trong 5 phút
+      retry: 2, // Thử lại tối đa 2 lần khi gặp lỗi mạng
+    },
+  },
+});
+
+// 2. AuthStack cho luồng chưa đăng nhập (Login & Register)
 const AuthStack = createNativeStackNavigator();
 
-// 2. Cấu hình Deep Linking: shopai://product/:productId mở thẳng vào ProductDetail
+// 3. Cấu hình Deep Linking
 const linking: LinkingOptions<any> = {
   prefixes: ['shopai://'],
   config: {
     screens: {
-      HomeTab: {
+      MainTabs: {
         screens: {
-          ProductDetail: 'product/:productId',
+          HomeTab: {
+            screens: {
+              ProductDetail: 'product/:productId',
+            },
+          },
+          Cart: 'cart',
+          Orders: 'orders',
         },
       },
-      Cart: 'cart',
+      Checkout: 'checkout',
+      OrderDetail: 'order/:orderId',
     },
   },
 };
 
 function App(): React.JSX.Element {
-  // State Machine quản lý Token người dùng (Chương 6 sẽ chuyển vào Zustand Store)
-  const [userToken, setUserToken] = useState<string | null>(null);
+  // Lấy Token xác thực trực tiếp từ Zustand Store
+  const token = useAuthStore((state) => state.token);
 
   return (
     <SafeAreaProvider>
-      {/* ThemeProvider bọc toàn app để cả luồng Auth lẫn Main đều truy cập được useTheme */}
-      <ThemeProvider>
-        <NavigationContainer linking={linking}>
-          {userToken == null ? (
-            // ==================== LUỒNG 1: CHƯA ĐĂNG NHẬP (AuthStack) ====================
-            // Không thể bấm Back lách luật vào MainTabs vì cây MainTabs chưa hề tồn tại trong bộ nhớ
-            <AuthStack.Navigator screenOptions={{ headerShown: false }}>
-              <AuthStack.Screen name="Login">
-                {({ navigation }) => (
-                  <LoginScreen
-                    onLogin={(token: string) => setUserToken(token)}
-                    onGoRegister={() => navigation.navigate('Register')}
-                  />
-                )}
-              </AuthStack.Screen>
-
-              <AuthStack.Screen name="Register">
-                {({ navigation }) => (
-                  <RegisterScreen
-                    onRegistered={(token: string) => setUserToken(token)}
-                    onGoLogin={() => navigation.navigate('Login')}
-                  />
-                )}
-              </AuthStack.Screen>
-            </AuthStack.Navigator>
-          ) : (
-            // ==================== LUỒNG 2: ĐÃ ĐĂNG NHẬP (MainTabNavigator) ====================
-            // Cấp quyền truy cập toàn bộ Bottom Tab (HomeTab + Cart)
-            <MainTabNavigator onLogout={() => setUserToken(null)} cartBadgeCount={2} />
-          )}
-        </NavigationContainer>
-      </ThemeProvider>
+      <QueryClientProvider client={queryClient}>
+        <ReduxProvider store={reduxStore}>
+          <ThemeProvider>
+            <NavigationContainer linking={linking}>
+              {token == null ? (
+                // ==================== LUỒNG 1: CHƯA ĐĂNG NHẬP (AuthStack) ====================
+                <AuthStack.Navigator screenOptions={{ headerShown: false }}>
+                  <AuthStack.Screen name="Login" component={LoginScreen} />
+                  <AuthStack.Screen name="Register" component={RegisterScreen} />
+                </AuthStack.Navigator>
+              ) : (
+                // ==================== LUỒNG 2: ĐÃ ĐĂNG NHẬP (RootStackNavigator) =============
+                // Chứa MainTabs, Checkout Modal và OrderDetail
+                <RootStackNavigator />
+              )}
+            </NavigationContainer>
+          </ThemeProvider>
+        </ReduxProvider>
+      </QueryClientProvider>
     </SafeAreaProvider>
   );
 }

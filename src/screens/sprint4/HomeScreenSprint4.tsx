@@ -52,7 +52,7 @@ const HomeScreenSprint4 = () => {
 
   const handleBuy = (product: Product) => {
     Alert.alert(
-      '🛒 Thêm giỏ hàng',
+      '🛒 Thêm giỏ nha bạn ơi',
       `Đã chọn: ${product.name}\nGiá: ${product.price.toLocaleString('vi-VN')} đ`,
     );
   };
@@ -89,7 +89,7 @@ const HomeScreenSprint4 = () => {
         <Text style={styles.searchIcon}>🔍</Text>
         <TextInput
           style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Tìm kiếm điện thoại, tai nghe, laptop..."
+          placeholder="Tìm kiếm nha, tai nghe, laptop..."
           placeholderTextColor={colors.textLight}
           value={search}
           onChangeText={setSearch}

@@ -13,16 +13,27 @@ import {
 } from 'react-native';
 import { COLORS, SIZES } from '@constants/theme';
 import ShopButton from '@components/ShopButton';
-import { Product } from '@data/mockProducts';
+import { Product } from '../types/product.schema';
+import { useCartStore } from '@store/useCartStore';
 
 const { width } = Dimensions.get('window');
 // Chia 2 cột đều nhau (khoảng cách viền và giữa là 12)
 const CARD_WIDTH = (width - 36) / 2;
 
+export interface ProductCardItem {
+  id: string;
+  name: string;
+  price: number;
+  image: ImageSourcePropType | string;
+  category?: string;
+  rating?: number;
+  discount?: boolean;
+}
+
 interface Props {
-  product: Product;
-  onPress?: (product: Product) => void;
-  onPressBuy?: (product: Product) => void;
+  product: ProductCardItem | Product;
+  onPress?: (product: any) => void;
+  onPressBuy?: (product: any) => void;
   cardBackground?: string;
   textColor?: string;
 }
@@ -35,6 +46,7 @@ const ProductCard = ({
   textColor = '#2C3E50',
 }: Props) => {
   const opacity = useRef(new Animated.Value(0)).current;
+  const addItem = useCartStore((state) => state.addItem);
 
   useEffect(() => {
     Animated.timing(opacity, {
@@ -56,8 +68,9 @@ const ProductCard = ({
     if (onPressBuy) {
       onPressBuy(product);
     } else {
+      addItem(product as any);
       Alert.alert(
-        '🛒 Đã chọn sản phẩm',
+        '🛒 Đã thêm vào giỏ',
         `${product.name}\nGiá: ${product.price.toLocaleString('vi-VN')} đ`,
       );
     }
@@ -82,7 +95,7 @@ const ProductCard = ({
 
           <Text style={styles.price}>{product.price.toLocaleString('vi-VN')} đ</Text>
 
-          {/* Nút bấm Mua ngay */}
+          {/* Nút bấm Mua ngay bắn thẳng vào Zustand Store */}
           <ShopButton
             title="Mua ngay"
             onPress={handleBuy}

@@ -1,5 +1,5 @@
 // src/screens/ProductDetailScreen.tsx
-// Màn hình Chi tiết sản phẩm nhận productId qua Route Params (Chương 5.3 & Sprint 5)
+// Màn hình Chi tiết sản phẩm nhận Route Params & Cache TanStack Query (Chương 5.3 & 6.8)
 import React from 'react';
 import {
   View,
@@ -12,19 +12,30 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
+import { useQueryClient } from '@tanstack/react-query';
 import ShopButton from '@components/ShopButton';
-import { MOCK_PRODUCTS } from '@data/mockProducts';
+import { useCartStore } from '@store/useCartStore';
+import { Product } from '../types/product.schema';
 import { COLORS, SIZES } from '@constants/theme';
 import type { HomeStackParamList } from '@navigation/HomeStackNavigator';
 
 type ProductDetailRouteProp = RouteProp<HomeStackParamList, 'ProductDetail'>;
 
+interface ProductPage {
+  items: Product[];
+  nextPage: number | null;
+}
+
 const ProductDetailScreen = () => {
   const route = useRoute<ProductDetailRouteProp>();
-  const { productId } = route.params; // Chỉ nhận chuỗi ID duy nhất, không nhận cả Object
+  const { productId } = route.params;
+  const queryClient = useQueryClient();
+  const addItem = useCartStore((state) => state.addItem);
 
-  // Từ ID, tra cứu dữ liệu đầy đủ từ nguồn dữ liệu (ở Ch.6 sẽ lấy từ API/Zustand Store)
-  const product = MOCK_PRODUCTS.find(p => p.id === productId);
+  // Móc thẳng vào Cache mà HomeScreen đã tải với queryKey ['productsInfinite']
+  const cachedData = queryClient.getQueryData<{ pages: ProductPage[] }>(['productsInfinite']);
+  const cachedProducts = cachedData?.pages.flatMap((page) => page.items) ?? [];
+  const product = cachedProducts.find((p) => p.id === productId);
 
   if (!product) {
     return (
@@ -32,10 +43,18 @@ const ProductDetailScreen = () => {
         <View style={styles.notFoundContainer}>
           <Text style={styles.notFoundEmoji}>⚠️</Text>
           <Text style={styles.notFound}>Không tìm thấy sản phẩm với ID: {productId}</Text>
+          <Text style={styles.notFoundHint}>
+            Hãy quay lại Trang chủ để danh sách được đồng bộ vào Cache trước.
+          </Text>
         </View>
       </SafeAreaView>
     );
   }
+
+  const handleAddToCart = () => {
+    addItem(product);
+    Alert.alert('🛒 Giỏ hàng', `Đã thêm ${product.name} vào giỏ hàng thành công!`);
+  };
 
   const imageSource: ImageSourcePropType =
     typeof product.image === 'string' ? { uri: product.image } : product.image;
@@ -47,8 +66,8 @@ const ProductDetailScreen = () => {
 
         <View style={styles.infoCard}>
           <View style={styles.categoryBadge}>
-            <Text style={styles.categoryText}>{product.category}</Text>
-            <Text style={styles.ratingText}>⭐ {product.rating}</Text>
+            <Text style={styles.categoryText}>{product.category || 'Công nghệ'}</Text>
+            <Text style={styles.ratingText}>⭐ {product.rating || 4.8}</Text>
           </View>
 
           <Text style={styles.name}>{product.name}</Text>
@@ -60,14 +79,14 @@ const ProductDetailScreen = () => {
           <View style={styles.descBlock}>
             <Text style={styles.descTitle}>Mô tả chi tiết:</Text>
             <Text style={styles.descText}>
-              Sản phẩm chính hãng chất lượng cao tại ShopAI. Bảo hành 12 tháng, đổi trả 1-1 trong 30
-              ngày nếu có lỗi từ nhà sản xuất.
+              Sản phẩm chính hãng chất lượng cao tại ShopAI Store. Bảo hành 12 tháng, đổi trả 1-1
+              trong 30 ngày nếu có lỗi từ nhà sản xuất.
             </Text>
           </View>
 
           <ShopButton
             title="Thêm vào giỏ hàng"
-            onPress={() => Alert.alert('🛒 Giỏ hàng', `Đã thêm ${product.name} vào giỏ hàng!`)}
+            onPress={handleAddToCart}
             style={styles.buyBtn}
           />
         </View>
@@ -176,6 +195,12 @@ const styles = StyleSheet.create({
     color: COLORS.danger,
     textAlign: 'center',
     fontWeight: '600',
+  },
+  notFoundHint: {
+    fontSize: SIZES.body2,
+    color: COLORS.textLight,
+    textAlign: 'center',
+    marginTop: 8,
   },
 });
 

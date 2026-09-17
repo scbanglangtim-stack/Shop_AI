@@ -1,23 +1,22 @@
 // src/screens/LoginScreen.tsx
-// Màn hình Đăng nhập chuẩn Auth Flow (Chương 5.2 & Sprint 5)
+// Màn hình Đăng nhập chuẩn Auth Flow & Zustand (Chương 5.2 & 6.3)
 import React, { useState } from 'react';
 import { View, Text, StyleSheet, Pressable } from 'react-native';
+import { useNavigation } from '@react-navigation/native';
 import ShopButton from '@components/ShopButton';
 import ShopInput from '@components/ui/ShopInput';
 import { COLORS, SIZES } from '@constants/theme';
+import { useAuthStore } from '@store/useAuthStore';
 
-interface LoginScreenProps {
-  onLogin: (token: string) => void;
-  onGoRegister: () => void;
-}
-
-const LoginScreen = ({ onLogin, onGoRegister }: LoginScreenProps) => {
+const LoginScreen = () => {
+  const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
   const [loading, setLoading] = useState(false);
 
-  // Validate đơn giản: Email phải chứa @, Mật khẩu tối thiểu 6 ký tự
+  const login = useAuthStore((state) => state.login);
+
   const validate = () => {
     const next: { email?: string; password?: string } = {};
     if (!email.includes('@')) {
@@ -36,7 +35,7 @@ const LoginScreen = ({ onLogin, onGoRegister }: LoginScreenProps) => {
     // Giả lập gọi API server xác thực
     setTimeout(() => {
       setLoading(false);
-      onLogin('mock_token_123'); // Cấp token
+      login('mock_token_123'); // Cấp token lên Zustand
     }, 1000);
   };
 
@@ -72,7 +71,7 @@ const LoginScreen = ({ onLogin, onGoRegister }: LoginScreenProps) => {
       />
 
       {/* Liên kết sang màn Đăng ký trong cùng AuthStack */}
-      <Pressable onPress={onGoRegister} style={styles.registerLink}>
+      <Pressable onPress={() => navigation.navigate('Register')} style={styles.registerLink}>
         <Text style={styles.registerLinkText}>
           Chưa có tài khoản? <Text style={styles.registerLinkBold}>Đăng ký</Text>
         </Text>
