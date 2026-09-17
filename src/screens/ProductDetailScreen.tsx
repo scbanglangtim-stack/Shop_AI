@@ -19,6 +19,8 @@ import { Product } from '../types/product.schema';
 import { COLORS, SIZES } from '@constants/theme';
 import type { HomeStackParamList } from '@navigation/HomeStackNavigator';
 
+import { MOCK_PRODUCTS } from '@data/mockProducts';
+
 type ProductDetailRouteProp = RouteProp<HomeStackParamList, 'ProductDetail'>;
 
 interface ProductPage {
@@ -35,7 +37,12 @@ const ProductDetailScreen = () => {
   // Móc thẳng vào Cache mà HomeScreen đã tải với queryKey ['productsInfinite']
   const cachedData = queryClient.getQueryData<{ pages: ProductPage[] }>(['productsInfinite']);
   const cachedProducts = cachedData?.pages.flatMap((page) => page.items) ?? [];
-  const product = cachedProducts.find((p) => p.id === productId);
+  let product = cachedProducts.find((p) => p.id === productId);
+
+  // Fallback an toàn vào dữ liệu MOCK_PRODUCTS
+  if (!product) {
+    product = MOCK_PRODUCTS.find((p) => p.id === productId);
+  }
 
   if (!product) {
     return (

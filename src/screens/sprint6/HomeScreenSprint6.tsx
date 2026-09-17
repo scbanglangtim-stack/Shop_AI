@@ -24,6 +24,8 @@ import { useAuthStore } from '@store/useAuthStore';
 import { useCartStore } from '@store/useCartStore';
 import { Product, ProductListSchema } from '../../types/product.schema';
 
+import { MOCK_PRODUCTS } from '@data/mockProducts';
+
 const CATEGORIES = ['Tất cả', 'Điện thoại', 'Tai nghe', 'Đồng hồ', 'Phụ kiện'];
 const PAGE_SIZE = 10;
 const TOTAL_MOCK_PRODUCTS = 47;
@@ -36,17 +38,6 @@ interface ProductPage {
 class ZodValidationError extends Error {}
 class NetworkError extends Error {}
 
-const MOCK_IMAGE_LIST = [
-  'https://images.unsplash.com/photo-1590658268037-6bf12165a8df?w=600',
-  'https://images.unsplash.com/photo-1523275335684-37898b6baf30?w=600',
-  'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?w=600',
-  'https://images.unsplash.com/photo-1583863788434-e58a36330cf0?w=600',
-  'https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=600',
-  'https://images.unsplash.com/photo-1609081219090-a6d81d3085bf?w=600',
-  'https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=600',
-  'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?w=600',
-];
-
 const fetchProductsPage = async ({ pageParam = 1 }: { pageParam?: number }): Promise<ProductPage> => {
   return new Promise((resolve, reject) => {
     setTimeout(() => {
@@ -55,15 +46,15 @@ const fetchProductsPage = async ({ pageParam = 1 }: { pageParam?: number }): Pro
         .map((_, i) => {
           const index = start + i;
           if (index >= TOTAL_MOCK_PRODUCTS) return null;
-          const cat = CATEGORIES[1 + (index % (CATEGORIES.length - 1))];
-          const img = MOCK_IMAGE_LIST[index % MOCK_IMAGE_LIST.length];
+          const sample = MOCK_PRODUCTS[index % MOCK_PRODUCTS.length];
+          const verSuffix = index >= MOCK_PRODUCTS.length ? ` (Bản Gen ${Math.floor(index / MOCK_PRODUCTS.length) + 1})` : '';
           return {
             id: `prod_${index + 1}`,
-            name: `${cat} ShopAI Pro Max ${index + 1}`,
-            price: 500000 + (index + 1) * 350000,
-            image: img,
-            category: cat,
-            rating: 4.5 + ((index % 5) * 0.1),
+            name: `${sample.name}${verSuffix}`,
+            price: sample.price + (Math.floor(index / MOCK_PRODUCTS.length) * 50000),
+            image: sample.image,
+            category: sample.category,
+            rating: sample.rating,
             discount: index % 2 === 0,
           };
         })
@@ -80,7 +71,7 @@ const fetchProductsPage = async ({ pageParam = 1 }: { pageParam?: number }): Pro
         items: result.data,
         nextPage: hasMore ? pageParam + 1 : null,
       });
-    }, 800);
+    }, 600);
   });
 };
 
