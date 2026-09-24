@@ -2,7 +2,8 @@ import { Vibration, Platform } from 'react-native';
 
 /**
  * Trung tâm điều phối rung phản hồi của ShopAI.
- * Sử dụng thời lượng chuẩn (ms) để tương thích tối đa với mọi motor rung Android & iOS.
+ * Tối ưu thời lượng mạnh mẽ (400ms) đặc biệt cho motor tuyến tính trục X (X-axis linear motor)
+ * trên các dòng máy cao cấp như Redmi K80 / Xiaomi HyperOS / Android 15.
  */
 
 let hapticsEnabled = true;
@@ -21,24 +22,24 @@ const safeVibrate = (pattern: number | number[]) => {
   }
 };
 
-/** Chạm nhẹ — dùng cho nút +/- số lượng (50ms). */
-export const hapticLight = () => safeVibrate(50);
+/** Chạm nhẹ — dùng cho nút +/- số lượng (150ms rung rõ). */
+export const hapticLight = () => safeVibrate(150);
 
-/** Chạm vừa — dùng cho nút Mua ngay, bấm chuyển tab (100ms). */
-export const hapticMedium = () => safeVibrate(100);
+/** Chạm vừa — dùng cho nút Mua ngay, chuyển tab (300ms). */
+export const hapticMedium = () => safeVibrate(300);
 
 /**
- * Rung "THÀNH CÔNG" — Quét trúng mã vạch, thêm giỏ hàng thành công.
- * Dùng thời lượng 150ms để motor rung kích hoạt dứt khoát, rõ rệt trên tay.
+ * Rung "THÀNH CÔNG" — Quét trúng mã vạch, thêm giỏ hàng.
+ * Tăng lên 400ms rung mạnh mẽ dứt khoát trên Redmi K80.
  */
 export const hapticSuccess = () => {
   if (Platform.OS === 'ios') {
     safeVibrate(1);
   } else {
-    // 150ms: Độ dài chuẩn vàng để motor rung Android rung chắc tay, không bị ngắt
-    safeVibrate(150);
+    // 400ms: Rung mạnh, chắc tay, không thể bỏ lỡ trên motor Redmi K80
+    safeVibrate(400);
   }
 };
 
-/** Rung "LỖI" — Hai nhịp dài (120ms, nghỉ 80ms, 120ms). */
-export const hapticError = () => safeVibrate([0, 120, 80, 120]);
+/** Rung "LỖI" — Hai nhịp dài mạnh (300ms, nghỉ 150ms, 300ms). */
+export const hapticError = () => safeVibrate([0, 300, 150, 300]);
