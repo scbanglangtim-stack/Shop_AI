@@ -20,6 +20,7 @@ import Typography from '@components/ui/Typography';
 import ShopButton from '@components/ShopButton';
 import ProductCard from '@components/ProductCard';
 import LocationBadge from '@components/LocationBadge';
+import QuickBuyModal from '@components/QuickBuyModal';
 import { useCountdown } from '@hooks/useCountdown';
 import { COLORS, SIZES, SHADOWS } from '@constants/theme';
 import { useAuthStore } from '@store/useAuthStore';
@@ -116,6 +117,8 @@ const HomeScreen = () => {
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
+  // Quản lý sản phẩm đang được chọn để mở QuickBuyModal
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // TanStack useInfiniteQuery - Vũ khí phân trang & Caching tối thượng
   const {
@@ -397,13 +400,13 @@ const HomeScreen = () => {
             </View>
           }
           renderItem={({ item }) => (
-            <Pressable onPress={() => handleOpenDetail(item.id)}>
-              <ProductCard
-                product={item}
-                cardBackground={colors.surface}
-                textColor={colors.text}
-              />
-            </Pressable>
+            <ProductCard
+              product={item}
+              cardBackground={colors.surface}
+              textColor={colors.text}
+              onPress={() => setSelectedProduct(item)}
+              onPressBuy={() => setSelectedProduct(item)}
+            />
           )}
           onEndReached={() => {
             if (hasNextPage && !isFetchingNextPage) {
@@ -423,6 +426,18 @@ const HomeScreen = () => {
           }
         />
       )}
+
+      {/* Bảng Thêm giỏ hàng / Mua ngay / Chọn số lượng siêu mượt */}
+      <QuickBuyModal
+        visible={selectedProduct !== null}
+        product={selectedProduct}
+        onClose={() => setSelectedProduct(null)}
+        onViewDetail={(productId) => handleOpenDetail(productId)}
+        onBuyNow={(product, quantity) => {
+          setSelectedProduct(null);
+          navigation.navigate('Cart');
+        }}
+      />
     </SafeAreaView>
   );
 };
