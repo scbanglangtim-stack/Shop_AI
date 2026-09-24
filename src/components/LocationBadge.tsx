@@ -113,4 +113,4 @@ const styles = StyleSheet.create({
   retry: { fontSize: 12, fontWeight: '700', marginLeft: 8 },
 });
 
-export default LocationBadge;
+export default React.memo(LocationBadge);

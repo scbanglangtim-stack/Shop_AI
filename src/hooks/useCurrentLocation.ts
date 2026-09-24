@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Alert, Linking, PermissionsAndroid, Platform } from 'react-native';
 import Geolocation from '@react-native-community/geolocation';
 
@@ -17,34 +17,38 @@ type LocationState = {
  */
 const requestLocationPermission = async (): Promise<boolean> => {
   if (Platform.OS === 'ios') {
-    Geolocation.requestAuthorization(); // Đọc NSLocationWhenInUseUsageDescription trong Info.plist
+    Geolocation.requestAuthorization();
     return true;
   }
 
-  const granted = await PermissionsAndroid.request(
-    PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
-    {
-      title: 'ShopAI cần quyền vị trí',
-      message: 'Cho phép ShopAI biết vị trí để tính chính xác phí giao hàng tới nhà bạn.',
-      buttonPositive: 'Cho phép',
-      buttonNegative: 'Để sau',
-    },
-  );
-
-  // PermissionsAndroid trả về 3 giá trị: 'granted' | 'denied' | 'never_ask_again'
-  if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
-    Alert.alert(
-      'Quyền vị trí đã bị chặn',
-      'Bạn đã chọn "Không hỏi lại". Hãy vào Cài đặt > ShopAI > Quyền > Vị trí để bật lại.',
-      [
-        { text: 'Để sau', style: 'cancel' },
-        { text: 'Mở Cài đặt', onPress: () => Linking.openSettings() },
-      ],
+  try {
+    const granted = await PermissionsAndroid.request(
+      PermissionsAndroid.PERMISSIONS.ACCESS_FINE_LOCATION,
+      {
+        title: 'ShopAI cần quyền vị trí',
+        message: 'Cho phép ShopAI biết vị trí để tính chính xác phí giao hàng tới nhà bạn.',
+        buttonPositive: 'Cho phép',
+        buttonNegative: 'Để sau',
+      },
     );
+
+    if (granted === PermissionsAndroid.RESULTS.NEVER_ASK_AGAIN) {
+      Alert.alert(
+        'Quyền vị trí đã bị chặn',
+        'Bạn đã chọn "Không hỏi lại". Hãy vào Cài đặt > ShopAI > Quyền > Vị trí để bật lại.',
+        [
+          { text: 'Để sau', style: 'cancel' },
+          { text: 'Mở Cài đặt', onPress: () => Linking.openSettings() },
+        ],
+      );
+      return false;
+    }
+
+    return granted === PermissionsAndroid.RESULTS.GRANTED;
+  } catch (e) {
+    console.log('[Location] Lỗi xin quyền:', e);
     return false;
   }
-
-  return granted === PermissionsAndroid.RESULTS.GRANTED;
 };
 
 export const useCurrentLocation = () => {
@@ -54,18 +58,24 @@ export const useCurrentLocation = () => {
     error: null,
   });
 
+  const isFetchingRef = useRef(false);
+
   const fetchLocation = useCallback(async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
+
     setState((s) => ({ ...s, loading: true, error: null }));
 
     const ok = await requestLocationPermission();
     if (!ok) {
+      isFetchingRef.current = false;
       setState({ coords: null, loading: false, error: 'Chưa được cấp quyền vị trí' });
       return;
     }
 
-    // Bọc API callback thành Promise-style bằng cách setState trực tiếp trong callback
     Geolocation.getCurrentPosition(
       (position) => {
+        isFetchingRef.current = false;
         setState({
           coords: {
             latitude: position.coords.latitude,
@@ -76,7 +86,7 @@ export const useCurrentLocation = () => {
         });
       },
       (err) => {
-        // err.code: 1 = từ chối quyền, 2 = không bắt được tín hiệu, 3 = quá thời gian chờ
+        isFetchingRef.current = false;
         const messages: Record<number, string> = {
           1: 'Bạn đã từ chối quyền vị trí',
           2: 'Không bắt được tín hiệu GPS',
@@ -89,9 +99,9 @@ export const useCurrentLocation = () => {
         });
       },
       {
-        enableHighAccuracy: false, // false = ưu tiên Wi-Fi/trạm phát sóng, nhanh & tiết kiệm pin
-        timeout: 15000,            // BẮT BUỘC có timeout để tránh treo app
-        maximumAge: 60000,         // Chấp nhận toạ độ đã cache trong 60 giây gần nhất
+        enableHighAccuracy: false, // false = nhanh & tiết kiệm pin
+        timeout: 15000,            // Timeout 15s
+        maximumAge: 60000,         // Cache 60s
       },
     );
   }, []);

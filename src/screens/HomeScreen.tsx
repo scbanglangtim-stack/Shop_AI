@@ -85,6 +85,25 @@ const fetchProductsPage = async ({ pageParam = 1 }: { pageParam?: number }): Pro
   });
 };
 
+// Component FlashSale riêng biệt để chỉ có nó đếm ngược 1s/lần, không làm cả HomeScreen re-render
+const FlashSaleBanner = React.memo(() => {
+  const { colors } = useTheme();
+  const { formattedTime, isFinished } = useCountdown(300);
+
+  return (
+    <View style={[styles.flashBanner, { backgroundColor: colors.primary }]}>
+      <View style={styles.flashLeft}>
+        <Text style={styles.flashTitle}>⚡ FLASH SALE HÔM NAY</Text>
+        <Text style={styles.flashSubtitle}>Giảm đến 50% khi thanh toán qua ShopAI</Text>
+      </View>
+      <View style={styles.flashTimerBox}>
+        <Text style={styles.timerLabel}>Kết thúc trong</Text>
+        <Text style={styles.timerValue}>{isFinished ? '00:00' : formattedTime}</Text>
+      </View>
+    </View>
+  );
+});
+
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
   const route = useRoute<any>();
@@ -97,9 +116,6 @@ const HomeScreen = () => {
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
-
-  // Flash Sale đếm ngược 5 phút
-  const { formattedTime, isFinished } = useCountdown(300);
 
   // TanStack useInfiniteQuery - Vũ khí phân trang & Caching tối thượng
   const {
@@ -141,172 +157,180 @@ const HomeScreen = () => {
       ? '⚠️ Dữ liệu sản phẩm không hợp lệ (Lỗi Zod Validation) — vui lòng báo kỹ thuật viên!'
       : '📡 Lỗi kết nối mạng — vui lòng kéo xuống để thử lại!';
 
-  const renderHeader = () => (
-    <View style={styles.headerContainer}>
-      {/* 1. Thanh tiêu đề & nút chuyển theme & nút Đăng xuất */}
-      <View style={styles.topBar}>
-        <View style={styles.brandBox}>
-          <Typography variant="h1" color={colors.primary}>
-            ShopAI Store
-          </Typography>
-          <Typography variant="caption" color={colors.textLight}>
-            Thế giới công nghệ AI & Hardware Native
-          </Typography>
-        </View>
-
-        <View style={styles.headerActions}>
-          <Pressable
-            style={[
-              styles.themePill,
-              { backgroundColor: colors.surface, borderColor: colors.border },
-            ]}
-            onPress={toggleTheme}
-          >
-            <Text style={styles.themePillText}>{isDark ? '☀️ Light' : '🌙 Dark'}</Text>
-          </Pressable>
-
-          <Pressable
-            style={[
-              styles.logoutPill,
-              { backgroundColor: colors.surface, borderColor: COLORS.danger },
-            ]}
-            onPress={logout}
-          >
-            <Text style={styles.logoutPillText}>🚪 Thoát</Text>
-          </Pressable>
-        </View>
-      </View>
-
-      {/* 2. Thẻ vị trí GPS & Phí giao hàng ước tính (Sprint 7) */}
-      <LocationBadge />
-
-      {/* 3. Thanh nút Giỏ hàng, Quét Mã Vạch (Sprint 7) & Đơn hàng */}
-      <View style={styles.cartActionRow}>
-        <ShopButton
-          title={`🛒 Giỏ (${totalQuantity})`}
-          onPress={() => navigation.navigate('Cart')}
-          style={styles.cartBtn}
-          textStyle={{ fontSize: 13 }}
-        />
-        <ShopButton
-          title="📷 Quét Mã"
-          variant="outline"
-          onPress={() => navigation.navigate('Scanner')}
-          style={styles.scanBtn}
-          textStyle={{ fontSize: 13 }}
-        />
-        <ShopButton
-          title="Đơn hàng"
-          variant="outline"
-          onPress={() => navigation.navigate('Orders')}
-          style={styles.ordersBtn}
-          textStyle={{ fontSize: 13 }}
-        />
-      </View>
-
-      {/* 4. Banner hiển thị mã Barcode/QR vừa quét được (Sprint 7) */}
-      {scannedCode && (
-        <View
-          style={[
-            styles.scannedBox,
-            {
-              backgroundColor: isDark ? '#2D2808' : '#FFFDE7',
-              borderColor: isDark ? '#FBC02D' : '#FDD835',
-            },
-          ]}
-        >
-          <View style={{ flex: 1 }}>
-            <Text style={[styles.scannedTitle, { color: isDark ? '#FFF59D' : '#F57F17' }]}>
-              🔍 Mã vừa quét thành công:
-            </Text>
-            <Text style={[styles.scannedValue, { color: isDark ? '#FFFDE7' : '#E65100' }]}>
-              {scannedCode}
-            </Text>
+  const headerElement = useMemo(
+    () => (
+      <View style={styles.headerContainer}>
+        {/* 1. Thanh tiêu đề & nút chuyển theme & nút Đăng xuất */}
+        <View style={styles.topBar}>
+          <View style={styles.brandBox}>
+            <Typography variant="h1" color={colors.primary}>
+              ShopAI Store
+            </Typography>
+            <Typography variant="caption" color={colors.textLight}>
+              Thế giới công nghệ AI & Hardware Native
+            </Typography>
           </View>
+
+          <View style={styles.headerActions}>
+            <Pressable
+              style={[
+                styles.themePill,
+                { backgroundColor: colors.surface, borderColor: colors.border },
+              ]}
+              onPress={toggleTheme}
+            >
+              <Text style={styles.themePillText}>{isDark ? '☀️ Light' : '🌙 Dark'}</Text>
+            </Pressable>
+
+            <Pressable
+              style={[
+                styles.logoutPill,
+                { backgroundColor: colors.surface, borderColor: COLORS.danger },
+              ]}
+              onPress={logout}
+            >
+              <Text style={styles.logoutPillText}>🚪 Thoát</Text>
+            </Pressable>
+          </View>
+        </View>
+
+        {/* 2. Thẻ vị trí GPS & Phí giao hàng ước tính (Sprint 7) */}
+        <LocationBadge />
+
+        {/* 3. Thanh nút Giỏ hàng, Quét Mã Vạch (Sprint 7) & Đơn hàng */}
+        <View style={styles.cartActionRow}>
           <ShopButton
-            title="Tìm kiếm"
-            onPress={() => setSearch(scannedCode)}
-            style={{ width: 85, height: 34, backgroundColor: COLORS.primary }}
-            textStyle={{ fontSize: 12 }}
+            title={`🛒 Giỏ (${totalQuantity})`}
+            onPress={() => navigation.navigate('Cart')}
+            style={styles.cartBtn}
+            textStyle={{ fontSize: 13 }}
+          />
+          <ShopButton
+            title="📷 Quét Mã"
+            variant="outline"
+            onPress={() => navigation.navigate('Scanner')}
+            style={styles.scanBtn}
+            textStyle={{ fontSize: 13 }}
+          />
+          <ShopButton
+            title="Đơn hàng"
+            variant="outline"
+            onPress={() => navigation.navigate('Orders')}
+            style={styles.ordersBtn}
+            textStyle={{ fontSize: 13 }}
           />
         </View>
-      )}
 
-      {/* 5. Thanh tìm kiếm */}
-      <View
-        style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}
-      >
-        <Text style={styles.searchIcon}>🔍</Text>
-        <TextInput
-          style={[styles.searchInput, { color: colors.text }]}
-          placeholder="Tìm kiếm điện thoại, tai nghe, đồng hồ..."
-          placeholderTextColor={colors.textLight}
-          value={search}
-          onChangeText={setSearch}
-        />
-        {search.length > 0 && (
-          <Pressable onPress={() => setSearch('')}>
-            <Text style={styles.clearIcon}>✕</Text>
-          </Pressable>
+        {/* 4. Banner hiển thị mã Barcode/QR vừa quét được (Sprint 7) */}
+        {scannedCode && (
+          <View
+            style={[
+              styles.scannedBox,
+              {
+                backgroundColor: isDark ? '#2D2808' : '#FFFDE7',
+                borderColor: isDark ? '#FBC02D' : '#FDD835',
+              },
+            ]}
+          >
+            <View style={{ flex: 1 }}>
+              <Text style={[styles.scannedTitle, { color: isDark ? '#FFF59D' : '#F57F17' }]}>
+                🔍 Mã vừa quét thành công:
+              </Text>
+              <Text style={[styles.scannedValue, { color: isDark ? '#FFFDE7' : '#E65100' }]}>
+                {scannedCode}
+              </Text>
+            </View>
+            <ShopButton
+              title="Tìm kiếm"
+              onPress={() => setSearch(scannedCode)}
+              style={{ width: 85, height: 34, backgroundColor: COLORS.primary }}
+              textStyle={{ fontSize: 12 }}
+            />
+          </View>
         )}
-      </View>
 
-      {/* 6. Banner Flash Sale */}
-      <View style={[styles.flashBanner, { backgroundColor: colors.primary }]}>
-        <View style={styles.flashLeft}>
-          <Text style={styles.flashTitle}>⚡ FLASH SALE HÔM NAY</Text>
-          <Text style={styles.flashSubtitle}>Giảm đến 50% khi thanh toán qua ShopAI</Text>
+        {/* 5. Thanh tìm kiếm */}
+        <View
+          style={[
+            styles.searchBox,
+            { backgroundColor: colors.surface, borderColor: colors.border },
+          ]}
+        >
+          <Text style={styles.searchIcon}>🔍</Text>
+          <TextInput
+            style={[styles.searchInput, { color: colors.text }]}
+            placeholder="Tìm kiếm điện thoại, tai nghe, đồng hồ..."
+            placeholderTextColor={colors.textLight}
+            value={search}
+            onChangeText={setSearch}
+          />
+          {search.length > 0 && (
+            <Pressable onPress={() => setSearch('')}>
+              <Text style={styles.clearIcon}>✕</Text>
+            </Pressable>
+          )}
         </View>
-        <View style={styles.flashTimerBox}>
-          <Text style={styles.timerLabel}>Kết thúc trong</Text>
-          <Text style={styles.timerValue}>{isFinished ? '00:00' : formattedTime}</Text>
-        </View>
-      </View>
 
-      {/* 5. Bộ lọc danh mục */}
-      <View style={styles.categorySection}>
-        <Typography variant="h3" color={colors.text} style={styles.sectionTitle}>
-          Danh mục nổi bật
-        </Typography>
-        <View style={styles.categoryList}>
-          {CATEGORIES.map((item) => {
-            const isActive = item === selectedCategory;
-            return (
-              <Pressable
-                key={item}
-                onPress={() => setSelectedCategory(item)}
-                style={[
-                  styles.catPill,
-                  {
-                    backgroundColor: isActive ? colors.primary : colors.surface,
-                    borderColor: isActive ? colors.primary : colors.border,
-                  },
-                ]}
-              >
-                <Text
+        {/* 6. Banner Flash Sale (tự cô lập logic đếm ngược) */}
+        <FlashSaleBanner />
+
+        {/* 7. Bộ lọc danh mục */}
+        <View style={styles.categorySection}>
+          <Typography variant="h3" color={colors.text} style={styles.sectionTitle}>
+            Danh mục nổi bật
+          </Typography>
+          <View style={styles.categoryList}>
+            {CATEGORIES.map((item) => {
+              const isActive = item === selectedCategory;
+              return (
+                <Pressable
+                  key={item}
+                  onPress={() => setSelectedCategory(item)}
                   style={[
-                    styles.catText,
+                    styles.catPill,
                     {
-                      color: isActive ? '#FFFFFF' : colors.text,
-                      fontWeight: isActive ? '700' : '500',
+                      backgroundColor: isActive ? colors.primary : colors.surface,
+                      borderColor: isActive ? colors.primary : colors.border,
                     },
                   ]}
                 >
-                  {item}
-                </Text>
-              </Pressable>
-            );
-          })}
+                  <Text
+                    style={[
+                      styles.catText,
+                      {
+                        color: isActive ? '#FFFFFF' : colors.text,
+                        fontWeight: isActive ? '700' : '500',
+                      },
+                    ]}
+                  >
+                    {item}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </View>
+        </View>
+
+        {/* 8. Tiêu đề danh sách */}
+        <View style={styles.listHeaderRow}>
+          <Typography variant="h3" color={colors.text}>
+            Gợi ý cho bạn ({filteredProducts.length} sản phẩm)
+          </Typography>
         </View>
       </View>
-
-      {/* 6. Tiêu đề danh sách */}
-      <View style={styles.listHeaderRow}>
-        <Typography variant="h3" color={colors.text}>
-          Gợi ý cho bạn ({filteredProducts.length} sản phẩm)
-        </Typography>
-      </View>
-    </View>
+    ),
+    [
+      colors,
+      isDark,
+      toggleTheme,
+      logout,
+      totalQuantity,
+      navigation,
+      scannedCode,
+      search,
+      selectedCategory,
+      filteredProducts.length,
+    ],
   );
 
   return (
@@ -339,7 +363,7 @@ const HomeScreen = () => {
           keyExtractor={(item) => item.id}
           numColumns={2}
           contentContainerStyle={styles.listContent}
-          ListHeaderComponent={renderHeader}
+          ListHeaderComponent={headerElement}
           showsVerticalScrollIndicator={false}
           refreshControl={
             <RefreshControl
