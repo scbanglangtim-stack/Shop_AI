@@ -1,67 +1,45 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { AppState, Alert, Linking, StyleSheet, Text, View } from 'react-native';
-import { Camera, useCameraDevice, useCodeScanner } from 'react-native-vision-camera';
+import React, { useRef } from 'react';
+import { Alert, Linking, StyleSheet, Text, View } from 'react-native';
+import {
+  Camera,
+  useCameraDevice,
+  useCodeScanner,
+  useCameraPermission,
+} from 'react-native-vision-camera';
 import { useIsFocused } from '@react-navigation/native';
 import ShopButton from '@components/ShopButton';
 import { COLORS } from '@constants/theme';
 import { hapticSuccess } from '@utils/haptics';
 
-// Ba trạng thái của quyền Camera
-type PermissionState = 'checking' | 'granted' | 'denied';
-
 const ScannerScreen = ({ navigation }: any) => {
-  const [permission, setPermission] = useState<PermissionState>('checking');
-  const device = useCameraDevice('back'); // Chọn ống kính mặt sau
-  const isFocused = useIsFocused(); // true nếu màn hình này đang hiển thị
+  const { hasPermission, requestPermission } = useCameraPermission();
+  const device = useCameraDevice('back');
+  const isFocused = useIsFocused();
 
-  // "CÁI KHÓA" chống quét lặp — dùng useRef vì đổi giá trị tức thời không re-render
+  // "CÁI KHÓA" chống quét lặp — dùng useRef đổi giá trị tức thời không re-render
   const isScanning = useRef(false);
 
-  // 1. Hàm xin/kiểm tra quyền
-  const requestPermission = useCallback(async () => {
+  // Xử lý khi user bấm nút cấp quyền
+  const handleRequestPermission = async () => {
     try {
-      const current = Camera.getCameraPermissionStatus();
-      if (current === 'granted') {
-        setPermission('granted');
-        return;
+      const granted = await requestPermission();
+      if (!granted) {
+        Alert.alert(
+          'Cần quyền Camera',
+          'Bạn đã từ chối quyền Camera nên ShopAI không thể quét mã vạch. Hãy vào Cài đặt > ShopAI và bật lại quyền Camera nhé.',
+          [
+            { text: 'Để sau', style: 'cancel' },
+            { text: 'Mở Cài đặt', onPress: () => Linking.openSettings() },
+          ],
+        );
       }
-
-      const status = await Camera.requestCameraPermission();
-      setPermission(status === 'granted' ? 'granted' : 'denied');
     } catch (e) {
-      console.log('[Scanner] Lỗi kiểm tra quyền:', e);
-      setPermission('denied');
+      console.log('[Scanner] Lỗi xin quyền:', e);
+      Linking.openSettings();
     }
-  }, []);
-
-  // 2. Xin quyền ở Runtime khi màn hình mount
-  useEffect(() => {
-    requestPermission();
-  }, [requestPermission]);
-
-  // 3. Khi user từ Settings quay lại app -> tự động dò lại quyền
-  useEffect(() => {
-    const sub = AppState.addEventListener('change', (nextState) => {
-      if (nextState === 'active') {
-        requestPermission();
-      }
-    });
-    return () => sub.remove();
-  }, [requestPermission]);
-
-  // 4. Mở Cài đặt hệ thống
-  const openAppSettings = () => {
-    Alert.alert(
-      'Cần quyền Camera',
-      'Bạn đã từ chối quyền Camera nên ShopAI không thể quét mã vạch. Hãy vào Cài đặt > ShopAI và bật lại quyền Camera nhé.',
-      [
-        { text: 'Để sau', style: 'cancel' },
-        { text: 'Mở Cài đặt', onPress: () => Linking.openSettings() },
-      ],
-    );
   };
 
-  // 5. Logic máy quét mã vạch qua JSI CodeScanner
+  // Logic máy quét mã vạch qua JSI CodeScanner
   const codeScanner = useCodeScanner({
     codeTypes: ['qr', 'ean-13', 'code-128'],
     onCodeScanned: (codes) => {
@@ -74,7 +52,7 @@ const ScannerScreen = ({ navigation }: any) => {
       isScanning.current = true; // Đóng khóa ngay lập tức
       console.log('[Scanner] Phát hiện mã:', value);
 
-      // Rung phản hồi thành công
+      // 📳 RUNG PHẢN HỒI: Kích hoạt nhịp rung thành công
       hapticSuccess();
 
       // Trả kết quả về HomeScreen
@@ -82,43 +60,36 @@ const ScannerScreen = ({ navigation }: any) => {
     },
   });
 
-  // A. Trạng thái đang kiểm tra quyền
-  if (permission === 'checking') {
+  // 1. Trạng thái chưa có quyền Camera (Tự động hiển thị giao diện này, không bao giờ bị màn đen)
+  if (!hasPermission) {
     return (
       <View style={styles.center}>
-        <Text style={styles.stateText}>Đang kiểm tra quyền Camera...</Text>
-      </View>
-    );
-  }
-
-  // B. Bị từ chối quyền
-  if (permission === 'denied') {
-    return (
-      <View style={styles.center}>
-        <Text style={styles.deniedTitle}>Chưa có quyền Camera</Text>
+        <Text style={styles.deniedEmoji}>📷</Text>
+        <Text style={styles.deniedTitle}>Cần quyền truy cập Camera</Text>
         <Text style={styles.deniedDesc}>
           ShopAI cần Camera để quét mã vạch sản phẩm. Ảnh chỉ được xử lý ngay trên máy
           của bạn và không bao giờ được gửi đi đâu cả.
         </Text>
         <ShopButton
-          title="Mở Cài đặt"
-          onPress={openAppSettings}
-          style={{ width: 200, marginBottom: 12 }}
+          title="Cấp quyền / Mở Cài đặt"
+          onPress={handleRequestPermission}
+          style={{ width: 220, marginBottom: 12, backgroundColor: COLORS.primary }}
         />
         <ShopButton
           title="Quay lại"
           variant="outline"
           onPress={() => navigation.goBack()}
-          style={{ width: 200 }}
+          style={{ width: 220 }}
         />
       </View>
     );
   }
 
-  // C. Thiết bị không có camera sau
+  // 2. Thiết bị không có camera sau (hoặc chạy trên Simulator)
   if (device == null) {
     return (
       <View style={styles.center}>
+        <Text style={styles.deniedEmoji}>🔍</Text>
         <Text style={styles.deniedTitle}>Không tìm thấy Camera</Text>
         <Text style={styles.deniedDesc}>
           Thiết bị không có Camera sau hoặc đang chạy trên máy ảo (Simulator/Emulator).
@@ -129,9 +100,9 @@ const ScannerScreen = ({ navigation }: any) => {
     );
   }
 
+  // 3. Đã có quyền đầy đủ -> Bật Camera View 60FPS
   return (
     <View style={styles.container}>
-      {/* 6. Luồng Camera C++ 60FPS */}
       <Camera
         style={StyleSheet.absoluteFill}
         device={device}
@@ -139,7 +110,7 @@ const ScannerScreen = ({ navigation }: any) => {
         codeScanner={codeScanner}
       />
 
-      {/* 7. Khung ngắm quét mã */}
+      {/* Khung ngắm quét mã */}
       <View style={styles.frameWrapper} pointerEvents="none">
         <View style={styles.frame} />
       </View>
@@ -163,16 +134,17 @@ const styles = StyleSheet.create({
     justifyContent: 'center',
     alignItems: 'center',
     padding: 24,
-    backgroundColor: COLORS.background,
+    backgroundColor: '#FFFFFF',
   },
-  stateText: { fontSize: 16, marginBottom: 12, textAlign: 'center', color: COLORS.text },
-  deniedTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: COLORS.danger },
+  deniedEmoji: { fontSize: 54, marginBottom: 14 },
+  deniedTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 10, color: '#1F2937' },
   deniedDesc: {
     fontSize: 14,
     textAlign: 'center',
     marginBottom: 24,
-    lineHeight: 20,
-    color: COLORS.textLight,
+    lineHeight: 22,
+    color: '#4B5563',
+    maxWidth: 320,
   },
   frameWrapper: {
     position: 'absolute',

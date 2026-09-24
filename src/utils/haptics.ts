@@ -22,33 +22,29 @@ const safeVibrate = (pattern: number | number[]) => {
   try {
     Vibration.vibrate(pattern);
   } catch (e) {
-    // Máy không có motor rung, hoặc user đã tắt rung trong Cài đặt hệ thống.
-    // Nuốt lỗi im lặng: thà không rung còn hơn crash app.
+    // Nuốt lỗi im lặng nếu thiết bị không hỗ trợ motor rung
     console.log('[haptics] Thiết bị không hỗ trợ rung:', e);
   }
 };
 
-/** Chạm nhẹ — dùng cho các nút bấm phụ. */
-export const hapticLight = () => safeVibrate(20);
+/** Chạm nhẹ — dùng cho các nút bấm phụ (40ms). */
+export const hapticLight = () => safeVibrate(40);
 
-/** Chạm vừa — dùng cho nút hành động chính (Thêm vào giỏ, Thanh toán). */
-export const hapticMedium = () => safeVibrate(40);
+/** Chạm vừa — dùng cho nút hành động chính (Thêm vào giỏ, Thanh toán - 70ms). */
+export const hapticMedium = () => safeVibrate(70);
 
 /**
- * Rung "THÀNH CÔNG" — hai nhịp ngắn liền nhau, cảm giác "tích-tắc".
- * Mảng đọc là: [đợi 0ms, rung 30ms, nghỉ 60ms, rung 30ms]
- * Đây là mẫu ta dùng cho việc quét mã vạch trúng đích.
+ * Rung "THÀNH CÔNG" — nhịp rõ ràng, cảm giác "tích-tắc".
+ * Mảng đọc là: [đợi 0ms, rung 80ms, nghỉ 60ms, rung 80ms]
+ * Đủ độ dài (80ms) để mọi motor rung trên Android/iOS đều kích hoạt rõ nét.
  */
 export const hapticSuccess = () => {
   if (Platform.OS === 'ios') {
-    // iOS bỏ qua tham số thời lượng của Vibration API (xem Phần 7.6),
-    // nên chỉ rung một nhịp chuẩn. Sau Chương 8 hãy thay bằng:
-    // Haptics.notificationAsync(Haptics.NotificationFeedbackType.Success)
     safeVibrate(1);
   } else {
-    safeVibrate([0, 30, 60, 30]);
+    safeVibrate([0, 80, 60, 80]);
   }
 };
 
-/** Rung "LỖI" — ba nhịp dài hơn, cảm giác dứt khoát khó chịu. */
-export const hapticError = () => safeVibrate([0, 60, 80, 60, 80, 60]);
+/** Rung "LỖI" — ba nhịp dài dứt khoát. */
+export const hapticError = () => safeVibrate([0, 80, 80, 80, 80, 80]);
