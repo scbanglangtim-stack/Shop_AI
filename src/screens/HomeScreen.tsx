@@ -166,7 +166,7 @@ const HomeScreen = () => {
             <Typography variant="h1" color={colors.primary}>
               ShopAI Store
             </Typography>
-            <Typography variant="caption" color={colors.textLight}>
+            <Typography variant="caption" color={colors.textLight} numberOfLines={1}>
               Thế giới công nghệ AI & Hardware Native
             </Typography>
           </View>
@@ -179,7 +179,15 @@ const HomeScreen = () => {
               ]}
               onPress={toggleTheme}
             >
-              <Text style={styles.themePillText}>{isDark ? '☀️ Light' : '🌙 Dark'}</Text>
+              <Text
+                style={[
+                  styles.themePillText,
+                  { color: isDark ? '#FFA940' : colors.text },
+                ]}
+                numberOfLines={1}
+              >
+                {isDark ? '☀️ Sáng' : '🌙 Tối'}
+              </Text>
             </Pressable>
 
             <Pressable
@@ -189,7 +197,9 @@ const HomeScreen = () => {
               ]}
               onPress={logout}
             >
-              <Text style={styles.logoutPillText}>🚪 Thoát</Text>
+              <Text style={styles.logoutPillText} numberOfLines={1}>
+                🚪 Thoát
+              </Text>
             </Pressable>
           </View>
         </View>
@@ -426,21 +436,32 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 12,
   },
-  brandBox: { flex: 1, paddingRight: 8 },
-  headerActions: { flexDirection: 'row', alignItems: 'center', gap: 8 },
+  brandBox: { flex: 1, paddingRight: 6 },
+  headerActions: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 6,
+    flexShrink: 0,
+  },
   themePill: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     ...SHADOWS.light,
   },
-  themePillText: { fontWeight: '700', fontSize: 12, color: COLORS.primary },
+  themePillText: { fontWeight: '700', fontSize: 12 },
   logoutPill: {
-    paddingHorizontal: 12,
+    paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 16,
     borderWidth: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
     ...SHADOWS.light,
   },
   logoutPillText: { fontWeight: '700', fontSize: 12, color: COLORS.danger },
