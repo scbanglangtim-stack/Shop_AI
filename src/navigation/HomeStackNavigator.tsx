@@ -4,10 +4,12 @@ import React from 'react';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import HomeScreen from '@screens/HomeScreen';
 import ProductDetailScreen from '@screens/ProductDetailScreen';
+import ScannerScreen from '@screens/ScannerScreen';
 
 export type HomeStackParamList = {
-  Home: undefined;
+  Home: { scannedCode?: string } | undefined;
   ProductDetail: { productId: string };
+  Scanner: undefined;
 };
 
 const Stack = createNativeStackNavigator<HomeStackParamList>();
@@ -32,6 +34,11 @@ const HomeStackNavigator = () => {
           title: 'Chi tiết sản phẩm',
           headerShown: true,
         }}
+      />
+      <Stack.Screen
+        name="Scanner"
+        component={ScannerScreen}
+        options={{ headerShown: false }}
       />
     </Stack.Navigator>
   );

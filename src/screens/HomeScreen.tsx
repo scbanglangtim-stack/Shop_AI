@@ -12,13 +12,14 @@ import {
   ActivityIndicator,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useNavigation } from '@react-navigation/native';
+import { useNavigation, useRoute } from '@react-navigation/native';
 import { useInfiniteQuery } from '@tanstack/react-query';
 import { FlashList } from '@shopify/flash-list';
 import { useTheme } from '@contexts/ThemeContext';
 import Typography from '@components/ui/Typography';
 import ShopButton from '@components/ShopButton';
 import ProductCard from '@components/ProductCard';
+import LocationBadge from '@components/LocationBadge';
 import { useCountdown } from '@hooks/useCountdown';
 import { COLORS, SIZES, SHADOWS } from '@constants/theme';
 import { useAuthStore } from '@store/useAuthStore';
@@ -36,8 +37,8 @@ interface ProductPage {
   nextPage: number | null;
 }
 
-class ZodValidationError extends Error {}
-class NetworkError extends Error {}
+class ZodValidationError extends Error { }
+class NetworkError extends Error { }
 
 const fetchProductsPage = async ({ pageParam = 1 }: { pageParam?: number }): Promise<ProductPage> => {
   return new Promise((resolve, reject) => {
@@ -86,9 +87,13 @@ const fetchProductsPage = async ({ pageParam = 1 }: { pageParam?: number }): Pro
 
 const HomeScreen = () => {
   const navigation = useNavigation<any>();
+  const route = useRoute<any>();
   const { colors, isDark, toggleTheme } = useTheme();
   const logout = useAuthStore((state) => state.logout);
   const totalQuantity = useCartStore((state) => state.totalQuantity());
+
+  // Nhận mã vạch trả về từ ScannerScreen (Sprint 7)
+  const scannedCode = route.params?.scannedCode;
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
@@ -145,7 +150,7 @@ const HomeScreen = () => {
             ShopAI Store
           </Typography>
           <Typography variant="caption" color={colors.textLight}>
-            Thế giới công nghệ AI & State Management
+            Thế giới công nghệ AI & Hardware Native
           </Typography>
         </View>
 
@@ -172,12 +177,23 @@ const HomeScreen = () => {
         </View>
       </View>
 
-      {/* 2. Thanh nút Giỏ hàng nổi bật & Redux Demo link */}
+      {/* 2. Thẻ vị trí GPS & Phí giao hàng ước tính (Sprint 7) */}
+      <LocationBadge />
+
+      {/* 3. Thanh nút Giỏ hàng, Quét Mã Vạch (Sprint 7) & Đơn hàng */}
       <View style={styles.cartActionRow}>
         <ShopButton
-          title={`🛒 Giỏ hàng (${totalQuantity})`}
+          title={`🛒 Giỏ (${totalQuantity})`}
           onPress={() => navigation.navigate('Cart')}
           style={styles.cartBtn}
+          textStyle={{ fontSize: 13 }}
+        />
+        <ShopButton
+          title="📷 Quét Mã"
+          variant="outline"
+          onPress={() => navigation.navigate('Scanner')}
+          style={styles.scanBtn}
+          textStyle={{ fontSize: 13 }}
         />
         <ShopButton
           title="Đơn hàng"
@@ -188,7 +204,35 @@ const HomeScreen = () => {
         />
       </View>
 
-      {/* 3. Thanh tìm kiếm */}
+      {/* 4. Banner hiển thị mã Barcode/QR vừa quét được (Sprint 7) */}
+      {scannedCode && (
+        <View
+          style={[
+            styles.scannedBox,
+            {
+              backgroundColor: isDark ? '#2D2808' : '#FFFDE7',
+              borderColor: isDark ? '#FBC02D' : '#FDD835',
+            },
+          ]}
+        >
+          <View style={{ flex: 1 }}>
+            <Text style={[styles.scannedTitle, { color: isDark ? '#FFF59D' : '#F57F17' }]}>
+              🔍 Mã vừa quét thành công:
+            </Text>
+            <Text style={[styles.scannedValue, { color: isDark ? '#FFFDE7' : '#E65100' }]}>
+              {scannedCode}
+            </Text>
+          </View>
+          <ShopButton
+            title="Tìm kiếm"
+            onPress={() => setSearch(scannedCode)}
+            style={{ width: 85, height: 34, backgroundColor: COLORS.primary }}
+            textStyle={{ fontSize: 12 }}
+          />
+        </View>
+      )}
+
+      {/* 5. Thanh tìm kiếm */}
       <View
         style={[styles.searchBox, { backgroundColor: colors.surface, borderColor: colors.border }]}
       >
@@ -207,7 +251,7 @@ const HomeScreen = () => {
         )}
       </View>
 
-      {/* 4. Banner Flash Sale */}
+      {/* 6. Banner Flash Sale */}
       <View style={[styles.flashBanner, { backgroundColor: colors.primary }]}>
         <View style={styles.flashLeft}>
           <Text style={styles.flashTitle}>⚡ FLASH SALE HÔM NAY</Text>
@@ -376,9 +420,21 @@ const styles = StyleSheet.create({
     ...SHADOWS.light,
   },
   logoutPillText: { fontWeight: '700', fontSize: 12, color: COLORS.danger },
-  cartActionRow: { flexDirection: 'row', gap: 10, marginBottom: 12 },
+  cartActionRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
   cartBtn: { flex: 1, height: 42, backgroundColor: COLORS.primary },
-  ordersBtn: { width: 110, height: 42 },
+  scanBtn: { width: 105, height: 42 },
+  ordersBtn: { width: 95, height: 42 },
+  scannedBox: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    padding: 12,
+    borderRadius: 12,
+    borderWidth: 1.5,
+    marginBottom: 12,
+    ...SHADOWS.light,
+  },
+  scannedTitle: { fontSize: 12, fontWeight: '700' },
+  scannedValue: { fontSize: 14, fontWeight: 'bold', marginTop: 2 },
   searchBox: {
     flexDirection: 'row',
     alignItems: 'center',
