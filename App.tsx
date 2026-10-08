@@ -1,6 +1,7 @@
 // App.tsx
-// Cấu hình Toàn diện: React Query, Redux Toolkit, Zustand Auth/Cart/Orders, ThemeContext & React Navigation
-import React from 'react';
+// Cấu hình Toàn diện: Hardware Keystore, Biometric Lock, App Lock, React Query, Redux Toolkit, Zustand & Navigation (Chương 8)
+import React, { useEffect } from 'react';
+import { ActivityIndicator, View } from 'react-native';
 import { NavigationContainer, LinkingOptions } from '@react-navigation/native';
 import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
@@ -9,9 +10,12 @@ import { Provider as ReduxProvider } from 'react-redux';
 import { ThemeProvider } from '@contexts/ThemeContext';
 import LoginScreen from '@screens/LoginScreen';
 import RegisterScreen from '@screens/RegisterScreen';
+import BiometricGateScreen from '@screens/BiometricGateScreen';
 import RootStackNavigator from '@navigation/RootStackNavigator';
 import { useAuthStore } from '@store/useAuthStore';
 import { reduxStore } from '@store/redux/store';
+import { useAppLock } from '@hooks/useAppLock';
+import { COLORS } from '@constants/theme';
 
 // 1. Cấu hình TanStack Query Client
 const queryClient = new QueryClient({
@@ -49,8 +53,34 @@ const linking: LinkingOptions<any> = {
 };
 
 function App(): React.JSX.Element {
-  // Lấy Token xác thực trực tiếp từ Zustand Store
+  // Lấy trạng thái xác thực từ Hardware-backed Keystore Zustand Store
   const token = useAuthStore((state) => state.token);
+  const isLoading = useAuthStore((state) => state.isLoading);
+  const isUnlocked = useAuthStore((state) => state.isUnlocked);
+  const checkLocalToken = useAuthStore((state) => state.checkLocalToken);
+  const setIsUnlocked = useAuthStore((state) => state.setIsUnlocked);
+
+  // Móc vào ổ cứng SecureStore (Keystore/Keychain) ngay khi App khởi chạy
+  useEffect(() => {
+    checkLocalToken();
+  }, [checkLocalToken]);
+
+  // Canh gác App Lock: tự động khóa lại nếu app ở nền quá 2 phút (Phần 8.12)
+  useAppLock({ isUnlocked, setIsUnlocked });
+
+  // 1. Nếu đang kiểm tra SecureStore Keystore -> hiện màn hình Loading
+  if (isLoading) {
+    return (
+      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
+        <ActivityIndicator size="large" color={COLORS.primary} />
+      </View>
+    );
+  }
+
+  // 2. Đã có Token nhưng chưa vượt qua cổng Sinh trắc học -> Hiện BiometricGateScreen
+  if (token != null && !isUnlocked) {
+    return <BiometricGateScreen onUnlock={() => setIsUnlocked(true)} />;
+  }
 
   return (
     <SafeAreaProvider>

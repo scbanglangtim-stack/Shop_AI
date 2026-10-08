@@ -210,7 +210,7 @@ const HomeScreen = () => {
         {/* 2. Thẻ vị trí GPS & Phí giao hàng ước tính (Sprint 7) */}
         <LocationBadge />
 
-        {/* 3. Thanh nút Giỏ hàng, Quét Mã Vạch (Sprint 7) & Đơn hàng */}
+        {/* 3. Thanh nút Giỏ hàng, Hỏi AI (Sprint 8), Quét Mã Vạch (Sprint 7) & Đơn hàng */}
         <View style={styles.cartActionRow}>
           <ShopButton
             title={`🛒 Giỏ (${totalQuantity})`}
@@ -219,7 +219,13 @@ const HomeScreen = () => {
             textStyle={{ fontSize: 13 }}
           />
           <ShopButton
-            title="📷 Quét Mã"
+            title="🤖 Hỏi AI"
+            onPress={() => navigation.navigate('AIChat')}
+            style={styles.aiBtn}
+            textStyle={{ fontSize: 13 }}
+          />
+          <ShopButton
+            title="📷 Quét"
             variant="outline"
             onPress={() => navigation.navigate('Scanner')}
             style={styles.scanBtn}
@@ -480,10 +486,11 @@ const styles = StyleSheet.create({
     ...SHADOWS.light,
   },
   logoutPillText: { fontWeight: '700', fontSize: 12, color: COLORS.danger },
-  cartActionRow: { flexDirection: 'row', gap: 8, marginBottom: 12 },
+  cartActionRow: { flexDirection: 'row', gap: 6, marginBottom: 12 },
   cartBtn: { flex: 1, height: 42, backgroundColor: COLORS.primary },
-  scanBtn: { width: 105, height: 42 },
-  ordersBtn: { width: 95, height: 42 },
+  aiBtn: { width: 88, height: 42, backgroundColor: '#722ED1' },
+  scanBtn: { width: 78, height: 42 },
+  ordersBtn: { width: 85, height: 42 },
   scannedBox: {
     flexDirection: 'row',
     alignItems: 'center',
