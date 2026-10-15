@@ -78,3 +78,9 @@ yarn-error.log
 .expo
 dist/
 web-build/
+
+# Tài liệu tham khảo nội bộ (Không commit lên Git)
+Tailieu/
+Tallieu/
+Tailieu
+Tallieu
