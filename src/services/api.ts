@@ -9,7 +9,7 @@ export const fetchPostsWithFetch = async (): Promise<Post[]> => {
   if (!response.ok) {
     throw new Error(`Lỗi HTTP: ${response.status}`);
   }
-  const data: Post[] = await response.json();
+  const data: Post[] = (await response.json()) as Post[];
   return data;
 };
 

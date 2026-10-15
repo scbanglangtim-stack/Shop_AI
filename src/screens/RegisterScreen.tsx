@@ -8,6 +8,8 @@ import ShopInput from '@components/ui/ShopInput';
 import { COLORS, SIZES } from '@constants/theme';
 import { useAuthStore } from '@store/useAuthStore';
 
+import axiosClient from '@api/axiosClient';
+
 const RegisterScreen = () => {
   const navigation = useNavigation<any>();
   const [name, setName] = useState('');
@@ -20,6 +22,7 @@ const RegisterScreen = () => {
     password?: string;
     confirm?: string;
   }>({});
+  const [serverError, setServerError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const login = useAuthStore((state) => state.login);
@@ -42,14 +45,24 @@ const RegisterScreen = () => {
     return Object.keys(next).length === 0;
   };
 
-  const handleRegister = () => {
+  const handleRegister = async () => {
     if (!validate()) return;
     setLoading(true);
-    // Giả lập đăng ký thành công -> cấp token vào Zustand
-    setTimeout(() => {
+    setServerError(null);
+
+    try {
+      const response = await axiosClient.post('/api/auth/register', {
+        email,
+        password,
+        name: name.trim(),
+      });
+      login(response.data.accessToken);
+    } catch (error: any) {
+      const msg = error?.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join(', ') : msg ?? 'Đăng ký thất bại');
+    } finally {
       setLoading(false);
-      login('mock_token_123');
-    }, 1000);
+    }
   };
 
   return (
@@ -97,6 +110,8 @@ const RegisterScreen = () => {
         secureTextEntry
       />
 
+      {serverError && <Text style={styles.errorText}>⚠️ {serverError}</Text>}
+
       <ShopButton
         title="Đăng ký ngay"
         onPress={handleRegister}
@@ -136,6 +151,12 @@ const styles = StyleSheet.create({
   },
   submitBtn: {
     marginTop: 8,
+  },
+  errorText: {
+    color: COLORS.danger,
+    fontSize: SIZES.body2,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   loginLink: {
     marginTop: 20,

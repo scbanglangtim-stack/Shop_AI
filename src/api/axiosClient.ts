@@ -2,9 +2,10 @@
 // Axios Instance & Interceptors chuyên nghiệp (Chương 6.6 & Sprint 6)
 import axios from 'axios';
 import { useAuthStore } from '@store/useAuthStore';
+import { API_BASE_URL } from '@constants/api';
 
 const axiosClient = axios.create({
-  baseURL: 'https://api.shopai.com', // Domain gốc (Chương 9 sẽ đổi thành URL NestJS thật)
+  baseURL: API_BASE_URL,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json',

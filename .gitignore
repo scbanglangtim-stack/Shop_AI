@@ -84,3 +84,10 @@ Tailieu/
 Tallieu/
 Tailieu
 Tallieu
+
+# Backend secrets and artifacts
+shopai-backend/.env
+shopai-backend/prisma/dev.db
+shopai-backend/prisma/dev.db-journal
+shopai-backend/node_modules/
+shopai-backend/dist/

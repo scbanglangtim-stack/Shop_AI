@@ -12,21 +12,34 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { RouteProp, useRoute } from '@react-navigation/native';
-import { useQueryClient } from '@tanstack/react-query';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 import ShopButton from '@components/ShopButton';
 import { useCartStore } from '@store/useCartStore';
-import { Product } from '../types/product.schema';
+import { API_BASE_URL } from '@constants/api';
+import { Product, ProductSchema } from '../types/product.schema';
 import { COLORS, SIZES } from '@constants/theme';
 import type { HomeStackParamList } from '@navigation/HomeStackNavigator';
 
-import { MOCK_PRODUCTS } from '@data/mockProducts';
-
 type ProductDetailRouteProp = RouteProp<HomeStackParamList, 'ProductDetail'>;
 
-interface ProductPage {
-  items: Product[];
-  nextPage: number | null;
-}
+const fetchProductById = async (id: string): Promise<Product> => {
+  const response = await fetch(`${API_BASE_URL}/api/products/${id}`);
+
+  // Bắt đúng mã 404 mà NestJS ném ra ở Bước 7c — hai đầu ăn khớp nhau
+  if (response.status === 404) {
+    throw new Error('Sản phẩm này không còn tồn tại trên hệ thống');
+  }
+  if (!response.ok) {
+    throw new Error('Lỗi mạng khi tải chi tiết sản phẩm');
+  }
+
+  const raw = await response.json();
+  const result = ProductSchema.safeParse(raw); // Vẫn giữ trạm kiểm soát Zod từ Chương 6
+  if (!result.success) {
+    throw new Error('Dữ liệu chi tiết sản phẩm không hợp lệ (Zod)');
+  }
+  return result.data;
+};
 
 const ProductDetailScreen = () => {
   const route = useRoute<ProductDetailRouteProp>();
@@ -34,24 +47,32 @@ const ProductDetailScreen = () => {
   const queryClient = useQueryClient();
   const addItem = useCartStore((state) => state.addItem);
 
-  // Móc thẳng vào Cache mà HomeScreen đã tải với queryKey ['productsInfinite']
-  const cachedData = queryClient.getQueryData<{ pages: ProductPage[] }>(['productsInfinite']);
-  const cachedProducts = cachedData?.pages.flatMap((page) => page.items) ?? [];
-  let product = cachedProducts.find((p) => p.id === productId);
+  const { data: product, isLoading, isError, error } = useQuery({
+    queryKey: ['product', productId],
+    queryFn: () => fetchProductById(productId),
+    placeholderData: () =>
+      queryClient
+        .getQueryData<Product[]>(['productsList'])
+        ?.find((p) => p.id === productId),
+  });
 
-  // Fallback an toàn vào dữ liệu MOCK_PRODUCTS
-  if (!product) {
-    product = MOCK_PRODUCTS.find((p) => p.id === productId);
+  if (isLoading && !product) {
+    return (
+      <SafeAreaView style={styles.safeArea}>
+        <View style={styles.notFoundContainer}>
+          <Text style={styles.notFound}>Đang tải chi tiết sản phẩm...</Text>
+        </View>
+      </SafeAreaView>
+    );
   }
 
-  if (!product) {
+  if (isError || !product) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.notFoundContainer}>
           <Text style={styles.notFoundEmoji}>⚠️</Text>
-          <Text style={styles.notFound}>Không tìm thấy sản phẩm với ID: {productId}</Text>
-          <Text style={styles.notFoundHint}>
-            Hãy quay lại Trang chủ để danh sách được đồng bộ vào Cache trước.
+          <Text style={styles.notFound}>
+            {(error as Error)?.message ?? `Không tìm thấy sản phẩm với ID: ${productId}`}
           </Text>
         </View>
       </SafeAreaView>

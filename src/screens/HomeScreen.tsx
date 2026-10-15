@@ -13,7 +13,7 @@ import {
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
-import { useInfiniteQuery } from '@tanstack/react-query';
+import { useQuery } from '@tanstack/react-query';
 import { FlashList } from '@shopify/flash-list';
 import { useTheme } from '@contexts/ThemeContext';
 import Typography from '@components/ui/Typography';
@@ -38,52 +38,28 @@ interface ProductPage {
   nextPage: number | null;
 }
 
+import { API_BASE_URL } from '@constants/api';
+
 class ZodValidationError extends Error { }
 class NetworkError extends Error { }
 
-const fetchProductsPage = async ({ pageParam = 1 }: { pageParam?: number }): Promise<ProductPage> => {
-  return new Promise((resolve, reject) => {
-    setTimeout(() => {
-      // Giả lập ngẫu nhiên ~5% khả năng mất kết nối mạng để kiểm thử UI lỗi
-      if (Math.random() < 0.05) {
-        reject(new NetworkError('Mất kết nối mạng, vui lòng thử lại!'));
-        return;
-      }
+const API_URL = `${API_BASE_URL}/api/products`;
 
-      const start = (pageParam - 1) * PAGE_SIZE;
-      const rawItems = Array.from({ length: PAGE_SIZE })
-        .map((_, i) => {
-          const index = start + i;
-          if (index >= TOTAL_MOCK_PRODUCTS) return null;
-          const sample = MOCK_PRODUCTS[index % MOCK_PRODUCTS.length];
-          const verSuffix = index >= MOCK_PRODUCTS.length ? ` (Bản Gen ${Math.floor(index / MOCK_PRODUCTS.length) + 1})` : '';
-          return {
-            id: `prod_${index + 1}`,
-            name: `${sample.name}${verSuffix}`,
-            price: sample.price + (Math.floor(index / MOCK_PRODUCTS.length) * 50000),
-            image: sample.image,
-            category: sample.category,
-            rating: sample.rating,
-            discount: index % 2 === 0,
-          };
-        })
-        .filter((item): item is NonNullable<typeof item> => item !== null);
+const fetchProductsAPI = async (): Promise<Product[]> => {
+  const response = await fetch(API_URL);
+  if (!response.ok) {
+    throw new NetworkError('Lỗi mạng từ Server NestJS');
+  }
+  const rawData = await response.json();
 
-      // TRẠM KIỂM SOÁT ZOD SCHEMA
-      const result = ProductListSchema.safeParse(rawItems);
-      if (!result.success) {
-        console.error('❌ Zod chặn dữ liệu bẩn từ API:', result.error.format());
-        reject(new ZodValidationError('Dữ liệu sản phẩm không hợp lệ (Zod validation failed)!'));
-        return;
-      }
+  // TRẠM KIỂM SOÁT ZOD SCHEMA (Chương 6 & 9)
+  const result = ProductListSchema.safeParse(rawData);
+  if (!result.success) {
+    console.error('❌ Zod chặn dữ liệu bẩn từ Server NestJS:', result.error.format());
+    throw new ZodValidationError('Dữ liệu sản phẩm từ Server không hợp lệ (Zod validation failed)!');
+  }
 
-      const hasMore = start + PAGE_SIZE < TOTAL_MOCK_PRODUCTS;
-      resolve({
-        items: result.data,
-        nextPage: hasMore ? pageParam + 1 : null,
-      });
-    }, 600);
-  });
+  return result.data;
 };
 
 // Component FlashSale riêng biệt để chỉ có nó đếm ngược 1s/lần, không làm cả HomeScreen re-render
@@ -111,6 +87,7 @@ const HomeScreen = () => {
   const { colors, isDark, toggleTheme } = useTheme();
   const logout = useAuthStore((state) => state.logout);
   const totalQuantity = useCartStore((state) => state.totalQuantity());
+  const addItem = useCartStore((state) => state.addItem);
 
   // Nhận mã vạch trả về từ ScannerScreen (Sprint 7)
   const scannedCode = route.params?.scannedCode;
@@ -121,26 +98,18 @@ const HomeScreen = () => {
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
   // TanStack useInfiniteQuery - Vũ khí phân trang & Caching tối thượng
+  // TanStack useQuery - Gọi API NestJS thật và lưu cache với key ['productsList']
   const {
-    data,
+    data: allProducts = [],
     isLoading,
     isError,
     error,
     refetch,
     isRefetching,
-    fetchNextPage,
-    hasNextPage,
-    isFetchingNextPage,
-  } = useInfiniteQuery({
-    queryKey: ['productsInfinite'],
-    queryFn: fetchProductsPage,
-    initialPageParam: 1,
-    getNextPageParam: (lastPage) => lastPage.nextPage,
+  } = useQuery({
+    queryKey: ['productsList'],
+    queryFn: fetchProductsAPI,
   });
-
-  const allProducts = useMemo(() => {
-    return data?.pages.flatMap((page) => page.items) ?? [];
-  }, [data]);
 
   // Lọc sản phẩm theo danh mục và từ khóa tìm kiếm
   const filteredProducts = useMemo(() => {
@@ -414,22 +383,6 @@ const HomeScreen = () => {
               onPressBuy={() => setSelectedProduct(item)}
             />
           )}
-          onEndReached={() => {
-            if (hasNextPage && !isFetchingNextPage) {
-              fetchNextPage();
-            }
-          }}
-          onEndReachedThreshold={0.5}
-          ListFooterComponent={
-            isFetchingNextPage ? (
-              <View style={styles.footerLoading}>
-                <ActivityIndicator size="small" color={colors.primary} />
-                <Text style={[styles.footerLoadingText, { color: colors.textLight }]}>
-                  Đang tải thêm trang tiếp theo...
-                </Text>
-              </View>
-            ) : null
-          }
         />
       )}
 
@@ -439,7 +392,10 @@ const HomeScreen = () => {
         product={selectedProduct}
         onClose={() => setSelectedProduct(null)}
         onViewDetail={(productId) => handleOpenDetail(productId)}
-        onBuyNow={(product, quantity) => {
+        onBuyNow={(prod, qty) => {
+          for (let i = 0; i < qty; i++) {
+            addItem(prod);
+          }
           setSelectedProduct(null);
           navigation.navigate('Cart');
         }}

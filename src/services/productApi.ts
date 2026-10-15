@@ -12,5 +12,5 @@ export async function fetchSamplePosts(): Promise<PostItem[]> {
   if (!res.ok) {
     throw new Error(`HTTP ${res.status}`);
   }
-  return res.json();
+  return (await res.json()) as PostItem[];
 }

@@ -10,25 +10,24 @@ import { useCartStore, CartItem } from '@store/useCartStore';
 import { useOrderStore } from '@store/useOrderStore';
 import { COLORS, SIZES } from '@constants/theme';
 
+import axiosClient from '@api/axiosClient';
+
 const formatCurrency = (value: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
 
-interface CreateOrderPayload {
-  items: CartItem[];
-  totalPrice: number;
-}
-
 interface CreateOrderResponse {
-  orderId: string;
-  status: 'PENDING';
+  id: string;
+  status: string;
+  total: number;
+  createdAt: string;
 }
 
-const createOrderLocal = async (_payload: CreateOrderPayload): Promise<CreateOrderResponse> => {
-  // Giả lập độ trễ mạng khi gọi Server ghi dữ liệu (Chương 9 sẽ nối NestJS thật)
-  await new Promise<void>((resolve) => {
-    setTimeout(() => resolve(), 1200);
+const placeOrderAPI = async (items: CartItem[], total: number): Promise<CreateOrderResponse> => {
+  const response = await axiosClient.post('/api/orders', {
+    items: items.map((item) => ({ productId: item.id, quantity: item.quantity })),
+    total,
   });
-  return { orderId: `ORD-${Date.now().toString().slice(-6)}`, status: 'PENDING' };
+  return response.data;
 };
 
 const CheckoutScreen = () => {
@@ -40,37 +39,38 @@ const CheckoutScreen = () => {
   const clearCart = useCartStore((state) => state.clearCart);
   const addOrder = useOrderStore((state) => state.addOrder);
 
-  // useMutation: Hành động GHI dữ liệu — chỉ chạy khi bấm nút xác nhận
-  const { mutate, isPending, isError, isSuccess, data } = useMutation({
-    mutationFn: createOrderLocal,
+  // useMutation: Hành động GHI dữ liệu — gọi API NestJS /api/orders
+  const { mutate, isPending, isError, isSuccess, data, error } = useMutation({
+    mutationFn: () => placeOrderAPI(items, totalPrice),
     onSuccess: (res) => {
       // 1. Thêm vào Lịch sử đơn hàng với trạng thái PENDING
       addOrder({
-        id: res.orderId,
+        id: res.id,
         items: [...items],
-        total: totalPrice,
-        status: 'PENDING',
-        createdAt: new Date().toISOString(),
+        total: res.total,
+        status: res.status as any,
+        createdAt: res.createdAt,
       });
 
-      // 2. Làm rỗng giỏ hàng
+      // 2. Làm rỗng giỏ hàng CHỈ KHI Server xác nhận thành công (Bước 9c)
       clearCart();
 
-      // 3. Đánh dấu Cache sản phẩm là "Thiu" để background refetch
-      queryClient.invalidateQueries({ queryKey: ['productsInfinite'] });
+      // 3. Invalidate cache đơn hàng và sản phẩm
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      queryClient.invalidateQueries({ queryKey: ['productsList'] });
 
       // 4. Tự động đóng modal và điều hướng về sau 1.5s
       setTimeout(() => {
         navigation.goBack();
       }, 1500);
     },
-    onError: (err) => {
-      console.error('❌ Đặt hàng thất bại:', err);
+    onError: (err: any) => {
+      console.error('❌ Đặt hàng thất bại:', err?.response?.data || err?.message);
     },
   });
 
   const handleConfirmOrder = () => {
-    mutate({ items, totalPrice });
+    mutate();
   };
 
   if (isSuccess) {
@@ -79,7 +79,7 @@ const CheckoutScreen = () => {
         <View style={styles.centerBox}>
           <Text style={styles.successIcon}>🎉</Text>
           <Text style={styles.successTitle}>Đặt hàng thành công!</Text>
-          <Text style={styles.successCode}>Mã đơn hàng: {data?.orderId}</Text>
+          <Text style={styles.successCode}>Mã đơn hàng: {data?.id}</Text>
           <Text style={styles.successStatus}>Trạng thái: PENDING (Chờ thanh toán)</Text>
           <Text style={styles.successHint}>Đơn hàng đã được lưu vào Lịch sử đơn hàng.</Text>
         </View>
@@ -127,7 +127,11 @@ const CheckoutScreen = () => {
 
         {isError && (
           <Text style={styles.errorText}>
-            Đặt hàng thất bại — vui lòng kiểm tra kết nối mạng và thử lại!
+            {(error as any)?.response?.data?.message
+              ? (Array.isArray((error as any).response.data.message)
+                  ? (error as any).response.data.message.join(', ')
+                  : (error as any).response.data.message)
+              : 'Đặt hàng thất bại — vui lòng kiểm tra kết nối mạng và thử lại!'}
           </Text>
         )}
 

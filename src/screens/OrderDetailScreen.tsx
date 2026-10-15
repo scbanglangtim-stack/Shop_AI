@@ -1,23 +1,74 @@
 // src/screens/OrderDetailScreen.tsx
-// Màn hình Chi tiết Hóa đơn & Thanh toán giả lập (Chương 6.10 & Sprint 6 Step 9.6)
+// Màn hình Chi tiết Hóa đơn & Thanh toán giả lập kết nối NestJS Backend (Chương 9 - Bước 9f.2)
 import React from 'react';
-import { View, Text, StyleSheet, ScrollView, Alert } from 'react-native';
+import { View, Text, StyleSheet, ScrollView, Alert, ActivityIndicator } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useRoute } from '@react-navigation/native';
+import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
+import axiosClient from '@api/axiosClient';
 import ShopButton from '@components/ShopButton';
-import { useOrderStore } from '@store/useOrderStore';
 import { COLORS, SIZES, SHADOWS } from '@constants/theme';
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v);
 
+interface BackendOrderDetail {
+  id: string;
+  userId: string;
+  total: number;
+  status: string;
+  createdAt: string;
+  items: Array<{
+    id?: string;
+    productId: string;
+    quantity: number;
+    price: number;
+    name?: string;
+  }>;
+}
+
 const OrderDetailScreen = () => {
   const route = useRoute<any>();
   const { orderId } = route.params;
-  const order = useOrderStore((state) => state.getById(orderId));
-  const markPaid = useOrderStore((state) => state.markPaid);
+  const queryClient = useQueryClient();
 
-  if (!order) {
+  // 1. Fetch chi tiết đơn hàng từ Server NestJS
+  const { data: order, isLoading, isError } = useQuery<BackendOrderDetail>({
+    queryKey: ['order', orderId],
+    queryFn: async () => {
+      const res = await axiosClient.get(`/api/orders/${orderId}`);
+      return res.data;
+    },
+  });
+
+  // 2. Mutation thanh toán đơn hàng (Chuyển PENDING -> PAID trên SQLite qua Prisma)
+  const payMutation = useMutation({
+    mutationFn: async () => {
+      const res = await axiosClient.post(`/api/orders/${orderId}/pay`);
+      return res.data;
+    },
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ['order', orderId] });
+      queryClient.invalidateQueries({ queryKey: ['orders'] });
+      Alert.alert('✅ Thành công', 'Đơn hàng đã được thanh toán thành công (Chuyển sang PAID)!');
+    },
+    onError: (err: any) => {
+      Alert.alert('❌ Lỗi', err?.response?.data?.message || 'Thanh toán thất bại');
+    },
+  });
+
+  if (isLoading) {
+    return (
+      <SafeAreaView style={styles.safe}>
+        <View style={styles.center}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Đang tải chi tiết đơn hàng từ NestJS...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
+  if (isError || !order) {
     return (
       <SafeAreaView style={styles.safe}>
         <View style={styles.center}>
@@ -28,11 +79,6 @@ const OrderDetailScreen = () => {
   }
 
   const isPaid = order.status === 'PAID';
-
-  const handlePayNow = () => {
-    markPaid(order.id);
-    Alert.alert('✅ Thành công', 'Đơn hàng đã được thanh toán thành công (Chuyển sang PAID)!');
-  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['bottom', 'left', 'right']}>
@@ -71,10 +117,10 @@ const OrderDetailScreen = () => {
         {/* Danh sách các món trong hóa đơn */}
         <View style={styles.card}>
           <Text style={styles.sectionTitle}>Chi tiết các sản phẩm</Text>
-          {order.items.map((it) => (
-            <View key={it.id} style={styles.itemRow}>
+          {order.items?.map((it, idx) => (
+            <View key={it.id || `${it.productId}_${idx}`} style={styles.itemRow}>
               <View style={{ flex: 1 }}>
-                <Text style={styles.itemName}>{it.name}</Text>
+                <Text style={styles.itemName}>{it.name || it.productId}</Text>
                 <Text style={styles.itemQuantity}>
                   {formatCurrency(it.price)} x {it.quantity}
                 </Text>
@@ -96,12 +142,15 @@ const OrderDetailScreen = () => {
           {!isPaid ? (
             <ShopButton
               title="💳 Thanh toán giả lập (→ PAID)"
-              onPress={handlePayNow}
+              onPress={() => payMutation.mutate()}
+              isLoading={payMutation.isPending}
               style={styles.payBtn}
             />
           ) : (
             <View style={styles.paidNotice}>
-              <Text style={styles.paidText}>🎉 Đơn hàng này đã thanh toán đầy đủ!</Text>
+              <Text style={styles.paidNoticeText}>
+                🎉 Đơn hàng đã được thanh toán hoàn tất. Cảm ơn bạn đã mua hàng tại ShopAI!
+              </Text>
             </View>
           )}
         </View>
@@ -113,63 +162,81 @@ const OrderDetailScreen = () => {
 const styles = StyleSheet.create({
   safe: { flex: 1, backgroundColor: COLORS.background },
   container: { padding: SIZES.padding, paddingBottom: 40 },
+  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: SIZES.padding },
+  missing: { fontSize: SIZES.body1, color: COLORS.danger, fontWeight: '600' },
+  loadingText: { marginTop: 12, fontSize: SIZES.body2, color: COLORS.textLight },
   card: {
     backgroundColor: COLORS.surface,
-    padding: 16,
     borderRadius: SIZES.radius,
+    padding: SIZES.padding,
     marginBottom: 16,
     borderWidth: 1,
     borderColor: '#ECECEC',
     ...SHADOWS.light,
   },
-  heading: { fontSize: 16, fontWeight: '800', color: COLORS.primary },
   badgeRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 14,
+    marginBottom: 16,
+    borderBottomWidth: 1,
+    borderBottomColor: '#F5F5F5',
+    paddingBottom: 12,
   },
-  statusBadge: { paddingHorizontal: 8, paddingVertical: 4, borderRadius: 6 },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  metaRow: { flexDirection: 'row', justifyContent: 'space-between', paddingVertical: 4 },
+  heading: { fontSize: 16, fontWeight: '800', color: COLORS.text },
+  statusBadge: { paddingHorizontal: 10, paddingVertical: 4, borderRadius: 6 },
+  statusText: { fontSize: 11, fontWeight: '800' },
+  metaRow: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    paddingVertical: 6,
+  },
   metaLabel: { fontSize: 13, color: COLORS.textLight },
   metaVal: { fontSize: 13, fontWeight: '600', color: COLORS.text },
-  sectionTitle: { fontSize: 15, fontWeight: '700', color: COLORS.text, marginBottom: 12 },
+  sectionTitle: {
+    fontSize: SIZES.h3,
+    fontWeight: '700',
+    color: COLORS.text,
+    marginBottom: 12,
+  },
   itemRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    paddingVertical: 8,
+    paddingVertical: 10,
     borderBottomWidth: 1,
-    borderBottomColor: '#F5F5F5',
+    borderBottomColor: '#F8F9F9',
   },
-  itemName: { fontSize: 14, fontWeight: '600', color: COLORS.text },
-  itemQuantity: { fontSize: 12, color: COLORS.textLight, marginTop: 2 },
-  itemTotal: { fontSize: 14, fontWeight: '700', color: COLORS.text },
+  itemName: { fontSize: 14, fontWeight: '600', color: COLORS.text, marginBottom: 2 },
+  itemQuantity: { fontSize: 12, color: COLORS.textLight },
+  itemTotal: { fontSize: 14, fontWeight: '700', color: COLORS.primary },
   totalBlock: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginTop: 14,
-    paddingTop: 12,
-    borderTopWidth: 1,
+    marginTop: 16,
+    paddingTop: 14,
+    borderTopWidth: 1.5,
     borderTopColor: '#ECECEC',
   },
-  totalLabel: { fontSize: SIZES.body1, fontWeight: 'bold', color: COLORS.text },
-  totalValue: { fontSize: SIZES.h2, fontWeight: 'bold', color: COLORS.primary },
+  totalLabel: { fontSize: 15, fontWeight: '700', color: COLORS.text },
+  totalValue: { fontSize: 18, fontWeight: '800', color: COLORS.primary },
   actionBlock: { marginTop: 8 },
-  payBtn: { height: 48 },
+  payBtn: { backgroundColor: COLORS.primary, height: 48 },
   paidNotice: {
     backgroundColor: '#E8F8F5',
     padding: 16,
     borderRadius: SIZES.radius,
-    alignItems: 'center',
     borderWidth: 1,
-    borderColor: COLORS.success,
+    borderColor: '#A3E4D7',
   },
-  paidText: { color: COLORS.success, fontWeight: '700', fontSize: 14 },
-  center: { flex: 1, justifyContent: 'center', alignItems: 'center', padding: 24 },
-  missing: { color: COLORS.error, fontSize: 16, fontWeight: '600' },
+  paidNoticeText: {
+    color: '#0E6655',
+    fontSize: 14,
+    fontWeight: '600',
+    textAlign: 'center',
+    lineHeight: 20,
+  },
 });
 
 export default OrderDetailScreen;

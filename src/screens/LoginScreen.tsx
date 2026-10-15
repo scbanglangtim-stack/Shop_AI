@@ -8,11 +8,14 @@ import ShopInput from '@components/ui/ShopInput';
 import { COLORS, SIZES } from '@constants/theme';
 import { useAuthStore } from '@store/useAuthStore';
 
+import axiosClient from '@api/axiosClient';
+
 const LoginScreen = () => {
   const navigation = useNavigation<any>();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [errors, setErrors] = useState<{ email?: string; password?: string }>({});
+  const [serverError, setServerError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
 
   const login = useAuthStore((state) => state.login);
@@ -29,14 +32,20 @@ const LoginScreen = () => {
     return Object.keys(next).length === 0;
   };
 
-  const handleLogin = () => {
+  const handleLogin = async () => {
     if (!validate()) return;
     setLoading(true);
-    // Giả lập gọi API server xác thực
-    setTimeout(() => {
+    setServerError(null);
+
+    try {
+      const response = await axiosClient.post('/api/auth/login', { email, password });
+      login(response.data.accessToken);
+    } catch (error: any) {
+      const msg = error?.response?.data?.message;
+      setServerError(Array.isArray(msg) ? msg.join(', ') : msg ?? 'Email hoặc mật khẩu không đúng');
+    } finally {
       setLoading(false);
-      login('mock_token_123'); // Cấp token lên Zustand
-    }, 1000);
+    }
   };
 
   return (
@@ -62,6 +71,8 @@ const LoginScreen = () => {
         error={errors.password}
         secureTextEntry
       />
+
+      {serverError && <Text style={styles.errorText}>⚠️ {serverError}</Text>}
 
       <ShopButton
         title="Đăng nhập ngay"
@@ -102,6 +113,12 @@ const styles = StyleSheet.create({
   },
   loginBtn: {
     marginTop: 8,
+  },
+  errorText: {
+    color: COLORS.danger,
+    fontSize: SIZES.body2,
+    textAlign: 'center',
+    marginBottom: 12,
   },
   registerLink: {
     marginTop: 20,

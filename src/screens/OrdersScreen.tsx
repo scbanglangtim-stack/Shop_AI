@@ -1,22 +1,52 @@
 // src/screens/OrdersScreen.tsx
-// Màn hình Lịch sử Đơn hàng (Chương 6.10 & Sprint 6 Step 9.6)
+// Màn hình Lịch sử Đơn hàng kết nối NestJS Backend thật (Chương 9 - Bước 9f)
 import React from 'react';
-import { View, Text, FlatList, Pressable, StyleSheet } from 'react-native';
+import { View, Text, FlatList, Pressable, StyleSheet, ActivityIndicator, RefreshControl } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import { useOrderStore, OrderRecord } from '@store/useOrderStore';
+import { useQuery } from '@tanstack/react-query';
+import axiosClient from '@api/axiosClient';
 import { COLORS, SIZES, SHADOWS } from '@constants/theme';
 import ShopButton from '@components/ShopButton';
 
 const formatCurrency = (v: number) =>
   new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v);
 
+interface BackendOrderItem {
+  productId: string;
+  quantity: number;
+  price: number;
+}
+
+interface BackendOrder {
+  id: string;
+  total: number;
+  status: string;
+  createdAt: string;
+  items: BackendOrderItem[];
+}
+
 const OrdersScreen = () => {
   const navigation = useNavigation<any>();
-  const orders = useOrderStore((state) => state.orders);
 
-  const renderOrderItem = ({ item }: { item: OrderRecord }) => {
+  // Fetch danh sách đơn hàng của User đang đăng nhập qua API NestJS
+  const {
+    data: orders = [],
+    isLoading,
+    isRefetching,
+    refetch,
+  } = useQuery<BackendOrder[]>({
+    queryKey: ['orders'],
+    queryFn: async () => {
+      const res = await axiosClient.get('/api/orders');
+      return res.data;
+    },
+  });
+
+  const renderOrderItem = ({ item }: { item: BackendOrder }) => {
     const isPaid = item.status === 'PAID';
+    const totalItems = item.items?.reduce((s, i) => s + i.quantity, 0) || 0;
+
     return (
       <Pressable
         style={styles.orderCard}
@@ -42,7 +72,8 @@ const OrdersScreen = () => {
         </View>
 
         <Text style={styles.itemCount}>
-          Gồm {item.items.reduce((s, i) => s + i.quantity, 0)} sản phẩm ({item.items.map(i => i.name).slice(0, 2).join(', ')}{item.items.length > 2 ? '...' : ''})
+          Gồm {totalItems} sản phẩm ({item.items?.map((i) => i.productId).slice(0, 2).join(', ') || ''}
+          {item.items && item.items.length > 2 ? '...' : ''})
         </Text>
 
         <View style={styles.cardFooter}>
@@ -61,7 +92,12 @@ const OrdersScreen = () => {
         <Text style={styles.headerTitle}>Đơn hàng của tôi</Text>
       </View>
 
-      {orders.length === 0 ? (
+      {isLoading && !isRefetching ? (
+        <View style={styles.centerLoading}>
+          <ActivityIndicator size="large" color={COLORS.primary} />
+          <Text style={styles.loadingText}>Đang tải đơn hàng từ NestJS...</Text>
+        </View>
+      ) : orders.length === 0 ? (
         <View style={styles.emptyContainer}>
           <Text style={styles.emptyIcon}>📋</Text>
           <Text style={styles.emptyTitle}>Chưa có đơn hàng nào</Text>
@@ -81,6 +117,16 @@ const OrdersScreen = () => {
           renderItem={renderOrderItem}
           contentContainerStyle={styles.list}
           showsVerticalScrollIndicator={false}
+          refreshControl={
+            <RefreshControl
+              refreshing={isRefetching}
+              onRefresh={() => {
+                refetch();
+              }}
+              colors={[COLORS.primary]}
+              tintColor={COLORS.primary}
+            />
+          }
         />
       )}
     </SafeAreaView>
@@ -97,6 +143,8 @@ const styles = StyleSheet.create({
     borderBottomColor: '#F0F0F0',
   },
   headerTitle: { fontSize: SIZES.h2, fontWeight: 'bold', color: COLORS.text },
+  centerLoading: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+  loadingText: { marginTop: 10, fontSize: SIZES.body2, color: COLORS.textLight },
   emptyContainer: {
     flex: 1,
     justifyContent: 'center',
@@ -104,7 +152,7 @@ const styles = StyleSheet.create({
     padding: SIZES.padding * 2,
   },
   emptyIcon: { fontSize: 64, marginBottom: 16 },
-  emptyTitle: { fontSize: SIZES.h2, fontWeight: 'bold', color: COLORS.text },
+  emptyTitle: { fontSize: SIZES.h2, fontWeight: 'bold', color: COLORS.text, textAlign: 'center' },
   emptySubtitle: {
     fontSize: SIZES.body2,
     color: COLORS.textLight,
@@ -112,11 +160,11 @@ const styles = StyleSheet.create({
     marginTop: 8,
     lineHeight: 20,
   },
-  list: { padding: SIZES.padding, paddingBottom: 32 },
+  list: { padding: SIZES.padding },
   orderCard: {
     backgroundColor: COLORS.surface,
-    padding: 16,
     borderRadius: SIZES.radius,
+    padding: 14,
     marginBottom: 12,
     borderWidth: 1,
     borderColor: '#ECECEC',
@@ -128,24 +176,24 @@ const styles = StyleSheet.create({
     alignItems: 'center',
     marginBottom: 8,
   },
-  orderId: { fontSize: SIZES.body1, fontWeight: 'bold', color: COLORS.text },
+  orderId: { fontSize: 14, fontWeight: '700', color: COLORS.text },
   statusBadge: {
     paddingHorizontal: 8,
     paddingVertical: 4,
     borderRadius: 6,
   },
-  statusText: { fontSize: 11, fontWeight: '700' },
-  itemCount: { fontSize: 13, color: COLORS.textLight, marginBottom: 12 },
+  statusText: { fontSize: 11, fontWeight: '800' },
+  itemCount: { fontSize: 13, color: COLORS.textLight, marginBottom: 10 },
   cardFooter: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderTopWidth: 1,
     borderTopColor: '#F5F5F5',
-    paddingTop: 10,
+    paddingTop: 8,
   },
   orderDate: { fontSize: 12, color: COLORS.textLight },
-  orderTotal: { fontSize: 16, fontWeight: 'bold', color: COLORS.primary },
+  orderTotal: { fontSize: 15, fontWeight: '800', color: COLORS.primary },
 });
 
 export default OrdersScreen;
