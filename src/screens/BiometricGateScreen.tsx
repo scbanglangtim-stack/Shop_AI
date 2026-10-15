@@ -2,7 +2,7 @@
 // Cổng khóa sinh trắc học (Face ID / Vân tay) bảo vệ dữ liệu nhạy cảm (Chương 8.7 & Sprint 8)
 import React, { useCallback, useEffect, useState } from 'react';
 import { ActivityIndicator, StyleSheet, Text, View } from 'react-native';
-import * as LocalAuthentication from 'expo-local-authentication';
+import * as LocalAuthentication from '@services/biometricService';
 import ShopButton from '@components/ShopButton';
 import { COLORS, SIZES } from '@constants/theme';
 import { useAuthStore } from '@store/useAuthStore';

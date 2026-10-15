@@ -1,7 +1,7 @@
 // src/store/useAuthStore.ts
 // Zustand Client State cho Xác thực người dùng & Lưu trữ bảo mật Hardware-backed Keystore (Chương 8)
 import { create } from 'zustand';
-import * as SecureStore from 'expo-secure-store';
+import * as SecureStore from '@services/secureStore';
 
 export interface AuthState {
   token: string | null;
