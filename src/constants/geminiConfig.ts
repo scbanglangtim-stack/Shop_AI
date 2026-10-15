@@ -13,4 +13,15 @@
 //    gọi Gemini AI sẽ chuyển xuống Backend NestJS. Mobile lúc đó chỉ gọi vào
 //    API nội bộ của chính chúng ta (`/api/ai/chat`) — không hề biết Key thật.
 // ============================================================================
-export const GEMINI_API_KEY = 'AIzaSyDemoShopAIChapter8KeyForGemini';
+
+// Thay chuỗi bên dưới bằng Gemini API Key thật của bạn (lấy tại https://aistudio.google.com/)
+// để kết nối trực tiếp đến Google AI Cloud.
+export const GEMINI_API_KEY: string = 'AIzaSyDemoShopAIChapter8KeyForGemini';
+
+// Tự động kích hoạt Local RAG Assistant nếu đang dùng Key demo hoặc chưa điền Key
+export const IS_DEMO_KEY =
+  !GEMINI_API_KEY ||
+  GEMINI_API_KEY.includes('Demo') ||
+  GEMINI_API_KEY.includes('ĐIỀN_API_KEY');
+
+

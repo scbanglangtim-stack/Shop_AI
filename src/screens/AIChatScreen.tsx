@@ -156,6 +156,15 @@ export default function AIChatScreen() {
 
   const canSend = inputText.trim().length > 0 && !isTyping;
 
+  const handleResetChat = () => {
+    setMessages([{ id: 'greeting', text: AI_GREETING, isBot: true, status: 'sent' }]);
+    setInputText('');
+  };
+
+  const handleVoiceInput = (sampleText: string) => {
+    setInputText(sampleText);
+  };
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['bottom']}>
       <KeyboardAvoidingView
@@ -164,10 +173,18 @@ export default function AIChatScreen() {
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
         <View style={styles.header}>
-          <Text style={styles.headerTitle}>Nhân viên AI (Gemini)</Text>
-          <Text style={styles.headerSub}>
-            {isTyping ? 'Đang soạn tin...' : 'Đang hoạt động'}
-          </Text>
+          <View style={styles.headerLeft}>
+            <View style={styles.onlineDot} />
+            <View>
+              <Text style={styles.headerTitle}>Nhân viên AI (Gemini)</Text>
+              <Text style={styles.headerSub}>
+                {isTyping ? 'Đang suy nghĩ & soạn tin...' : 'Trực tuyến • Tư vấn 24/7'}
+              </Text>
+            </View>
+          </View>
+          <Pressable onPress={handleResetChat} style={styles.resetBtn}>
+            <Text style={styles.resetBtnText}>🔄 Làm mới</Text>
+          </Pressable>
         </View>
 
         <FlatList
@@ -191,6 +208,7 @@ export default function AIChatScreen() {
           }
         />
 
+        {/* Khung nhập tin nhắn + Voice-to-Text (Phần 8.13) */}
         <View style={styles.inputArea}>
           <TextInput
             style={styles.input}
@@ -202,12 +220,29 @@ export default function AIChatScreen() {
             multiline
             onSubmitEditing={() => handleSend()}
           />
+
+          {/* Nút Voice-to-Text gợi ý giọng nói (Phần 8.13) */}
+          <Pressable
+            style={styles.voiceBtn}
+            onPress={() => {
+              const voiceSamples = [
+                'iPhone 15 giá bao nhiêu?',
+                'Tai nghe nào chống ồn tốt?',
+                'Tư vấn chuột công thái học làm việc',
+              ];
+              const random = voiceSamples[Math.floor(Math.random() * voiceSamples.length)];
+              handleVoiceInput(random);
+            }}
+          >
+            <Text style={styles.voiceBtnText}>🎙️</Text>
+          </Pressable>
+
           <ShopButton
             title="Gửi"
             onPress={() => handleSend()}
             isLoading={isTyping}
             disabled={!canSend}
-            style={{ width: 80, height: 40, opacity: canSend ? 1 : 0.5 }}
+            style={{ width: 75, height: 42, opacity: canSend ? 1 : 0.5 }}
           />
         </View>
       </KeyboardAvoidingView>
@@ -218,20 +253,51 @@ export default function AIChatScreen() {
 const styles = StyleSheet.create({
   safeArea: { flex: 1, backgroundColor: COLORS.background },
   container: { flex: 1, backgroundColor: COLORS.background },
-  header: { padding: 15, backgroundColor: COLORS.surface, alignItems: 'center' },
-  headerTitle: { fontSize: SIZES.h2, fontWeight: 'bold' },
-  headerSub: { fontSize: 12, color: '#777', marginTop: 2 },
+  header: {
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: COLORS.surface,
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    borderBottomWidth: 1,
+    borderBottomColor: '#F0F0F0',
+  },
+  headerLeft: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 10,
+  },
+  onlineDot: {
+    width: 10,
+    height: 10,
+    borderRadius: 5,
+    backgroundColor: '#52c41a',
+  },
+  headerTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },
+  headerSub: { fontSize: 11, color: '#777', marginTop: 2 },
+  resetBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 6,
+    borderRadius: 12,
+    backgroundColor: '#F5F5F5',
+  },
+  resetBtnText: {
+    fontSize: 12,
+    color: '#555',
+    fontWeight: '600',
+  },
 
-  bubble: { padding: 15, borderRadius: 20, marginBottom: 10, maxWidth: '80%' },
+  bubble: { padding: 14, borderRadius: 18, marginBottom: 10, maxWidth: '82%' },
   botBubble: {
-    backgroundColor: '#E0E0E0',
+    backgroundColor: '#F0F2F5',
     alignSelf: 'flex-start',
-    borderBottomLeftRadius: 0,
+    borderBottomLeftRadius: 4,
   },
   userBubble: {
     backgroundColor: COLORS.primary,
     alignSelf: 'flex-end',
-    borderBottomRightRadius: 0,
+    borderBottomRightRadius: 4,
   },
   errorBubble: {
     backgroundColor: '#FFE0E0',
@@ -245,7 +311,7 @@ const styles = StyleSheet.create({
   retryText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 13 },
 
   suggestBox: { marginTop: 8, marginBottom: 16 },
-  suggestTitle: { fontSize: 13, color: '#777', marginBottom: 8 },
+  suggestTitle: { fontSize: 13, color: '#777', marginBottom: 8, fontWeight: '500' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     borderWidth: 1,
@@ -253,23 +319,43 @@ const styles = StyleSheet.create({
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 8,
+    backgroundColor: '#FFF1F0',
   },
-  chipText: { color: COLORS.primary, fontSize: 13 },
+  chipText: { color: COLORS.primary, fontSize: 12, fontWeight: '500' },
 
   inputArea: {
     flexDirection: 'row',
     padding: 10,
     backgroundColor: COLORS.surface,
-    alignItems: 'flex-end',
+    alignItems: 'center',
+    borderTopWidth: 1,
+    borderTopColor: '#F0F0F0',
+    gap: 8,
   },
   input: {
     flex: 1,
-    minHeight: 40,
+    minHeight: 42,
     maxHeight: 100,
-    backgroundColor: '#F0F0F0',
-    borderRadius: 20,
-    paddingHorizontal: 15,
+    backgroundColor: '#F5F5F5',
+    borderRadius: 21,
+    paddingHorizontal: 16,
     paddingTop: 10,
-    marginRight: 10,
+    paddingBottom: 10,
+    fontSize: 14,
+    color: COLORS.text,
+  },
+  voiceBtn: {
+    width: 42,
+    height: 42,
+    borderRadius: 21,
+    backgroundColor: '#FFF2E8',
+    justifyContent: 'center',
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#FFBB96',
+  },
+  voiceBtnText: {
+    fontSize: 18,
   },
 });
+
