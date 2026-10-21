@@ -1,0 +1,39 @@
+appId: com.shopai.app
+---
+- launchApp:
+    clearState: true   # Xóa sạch dữ liệu cũ -> mỗi lần chạy đều bắt đầu từ trạng thái giống hệt nhau
+
+# Dùng lại subflow đăng nhập ở trên
+- runFlow: subflows/login.yaml
+
+# ===== BƯỚC 1: Kiểm tra danh sách sản phẩm đã tải xong từ NestJS (Chương 9) =====
+- assertVisible: "Khám phá"
+- extendedWaitUntil:
+    visible: "Sản phẩm từ NestJS Server 0"
+    timeout: 10000     # Chờ tối đa 10 giây — đủ cho Server LAN phản hồi, tránh test chập chờn
+
+# ===== BƯỚC 2: Thêm sản phẩm vào giỏ =====
+- tapOn: "Sản phẩm từ NestJS Server 0"
+- assertVisible: "Thêm vào giỏ hàng"
+- tapOn: "Thêm vào giỏ hàng"
+- back                 # Quay lại Trang chủ
+
+# ===== BƯỚC 3: Chuyển sang Tab Giỏ hàng (MainTabNavigator, Chương 5) =====
+- tapOn: "Giỏ hàng"
+- assertVisible: "Giỏ hàng"
+- assertVisible: "Tổng cộng"
+- assertVisible:
+    text: "Sản phẩm từ NestJS Server 0"   # Sản phẩm vừa thêm phải có mặt trong giỏ
+
+# ===== BƯỚC 4: Mở Modal Thanh toán (RootStackNavigator, Chương 6) =====
+- tapOn: "Thanh toán"
+- assertVisible: "Xác nhận đơn hàng"
+- assertVisible: "Xác nhận đặt hàng"
+
+# ===== BƯỚC 5: Đặt hàng thật lên NestJS (Chương 9, Bước 9c) =====
+- tapOn: "Xác nhận đặt hàng"
+- extendedWaitUntil:
+    visible: "Đặt hàng thành công!"
+    timeout: 15000     # Đặt hàng cần gọi mạng thật -> cho thời gian chờ rộng rãi hơn
+- assertVisible:
+    text: "Mã đơn: ORD-.*"                # Regex: chỉ cần đúng định dạng, không cần đúng mã cụ thể

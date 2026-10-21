@@ -1,9 +1,7 @@
 // src/utils/index.ts
-// Các hàm tiện ích dùng chung (Chương 2 & 3)
+// Các hàm tiện ích dùng chung (Chương 2, 3 & 11)
 
-export const formatCurrency = (amount: number): string => {
-  return amount.toLocaleString('vi-VN') + ' đ';
-};
+export * from './formatCurrency';
 
 export const validateEmail = (email: string): boolean => {
   const re = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;

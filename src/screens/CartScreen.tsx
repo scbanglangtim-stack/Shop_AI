@@ -7,9 +7,7 @@ import { useNavigation } from '@react-navigation/native';
 import { useCartStore } from '@store/useCartStore';
 import ShopButton from '@components/ShopButton';
 import { COLORS, SIZES } from '@constants/theme';
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+import { formatCurrency } from '@utils/formatCurrency';
 
 const CartScreen = () => {
   const navigation = useNavigation<any>();

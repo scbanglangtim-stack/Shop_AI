@@ -15,6 +15,7 @@ import { COLORS, SIZES } from '@constants/theme';
 import ShopButton from '@components/ShopButton';
 import { Product } from '../types/product.schema';
 import { useCartStore } from '@store/useCartStore';
+import { formatCurrency } from '@utils/formatCurrency';
 
 const { width } = Dimensions.get('window');
 // Chia 2 cột đều nhau (khoảng cách viền và giữa là 12)
@@ -93,7 +94,7 @@ const ProductCard = ({
             {product.name}
           </Text>
 
-          <Text style={styles.price}>{product.price.toLocaleString('vi-VN')} đ</Text>
+          <Text style={styles.price}>{formatCurrency(product.price)}</Text>
 
           {/* Nút bấm Mua ngay bắn thẳng vào Zustand Store */}
           <ShopButton

@@ -1,0 +1,11 @@
+appId: com.shopai.app
+---
+- launchApp
+# ShopInput hiển thị placeholder khi trống -> Maestro tìm text placeholder để tap đúng ô nhập
+- tapOn: "you@example.com"
+- inputText: "demo@shopai.com"
+- tapOn: "Ít nhất 6 ký tự"
+- inputText: "123456"
+- tapOn: "Đăng nhập ngay"
+# Chờ chuyển màn hình rồi kiểm tra đã vào đúng HomeScreen
+- assertVisible: "Khám phá"

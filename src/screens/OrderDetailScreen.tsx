@@ -8,9 +8,7 @@ import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import axiosClient from '@api/axiosClient';
 import ShopButton from '@components/ShopButton';
 import { COLORS, SIZES, SHADOWS } from '@constants/theme';
-
-const formatCurrency = (v: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(v);
+import { formatCurrency } from '@utils/formatCurrency';
 
 interface BackendOrderDetail {
   id: string;

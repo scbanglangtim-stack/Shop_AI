@@ -1,0 +1,121 @@
+name: ShopAI CI
+
+on:
+  push:
+    branches: [main, develop]
+  pull_request:
+    branches: [main, develop]
+
+jobs:
+  # ===== JOB 1: Kiểm tra chất lượng mã nguồn Mobile =====
+  lint:
+    name: Lint & TypeScript (Mobile)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+      - run: npm ci
+      - name: ESLint
+        run: npm run lint
+      - name: Kiểm tra kiểu TypeScript
+        run: npx tsc --noEmit
+
+  # ===== JOB 2: Chạy test Mobile trên nhiều phiên bản Node song song =====
+  test:
+    name: Mobile Test (Node ${{ matrix.node-version }})
+    needs: lint
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        node-version: ['18.x', '20.x', '22.x']
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: ${{ matrix.node-version }}
+          cache: 'npm'
+
+      - name: Cache node_modules
+        uses: actions/cache@v4
+        with:
+          path: ~/.npm
+          key: ${{ runner.os }}-node-${{ matrix.node-version }}-${{ hashFiles('**/package-lock.json') }}
+          restore-keys: ${{ runner.os }}-node-${{ matrix.node-version }}-
+
+      - run: npm ci
+
+      - name: Chạy toàn bộ test kèm coverage
+        run: npm run test:ci
+
+      # Lưu báo cáo coverage của node 20.x
+      - name: Lưu báo cáo coverage
+        if: always() && matrix.node-version == '20.x'
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/
+          retention-days: 7
+
+  # ===== JOB 3: Build APK cho QA tải về =====
+  build-android:
+    name: Build Debug APK
+    needs: test
+    if: github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with: { node-version: '20', cache: 'npm' }
+      - uses: actions/setup-java@v4
+        with: { distribution: 'temurin', java-version: '17' }
+
+      - name: Cache Gradle
+        uses: actions/cache@v4
+        with:
+          path: |
+            ~/.gradle/caches
+            ~/.gradle/wrapper
+          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*') }}
+
+      - run: npm ci
+      - name: Đóng gói APK
+        run: cd android && ./gradlew assembleDebug --no-daemon
+
+      - name: Lưu APK cho QA
+        uses: actions/upload-artifact@v4
+        with:
+          name: shopai-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
+
+  # ===== JOB 4: Test Backend NestJS (Jest/Vitest + Supertest) =====
+  backend-test:
+    name: Backend NestJS Test (Jest + Supertest)
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: shopai-backend
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+          cache-dependency-path: shopai-backend/package-lock.json
+
+      - run: npm ci
+
+      - name: Unit Test (AuthService, OrderService...)
+        run: npm test
+
+      - name: E2E Test (Supertest — login + orders)
+        env:
+          JWT_SECRET: test_secret_chi_dung_trong_ci_khong_dung_that
+          JWT_EXPIRES_IN: 1d
+        run: npm run test:e2e

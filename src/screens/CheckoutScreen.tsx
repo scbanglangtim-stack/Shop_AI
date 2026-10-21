@@ -13,9 +13,7 @@ import { logCrashlytics, recordCrashlyticsError, setCrashlyticsAttributes } from
 import { APP_ENV, API_BASE_URL } from '@constants/env';
 
 import axiosClient from '@api/axiosClient';
-
-const formatCurrency = (value: number) =>
-  new Intl.NumberFormat('vi-VN', { style: 'currency', currency: 'VND' }).format(value);
+import { formatCurrency } from '@utils/formatCurrency';
 
 interface CreateOrderResponse {
   id: string;

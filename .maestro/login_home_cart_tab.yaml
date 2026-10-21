@@ -1,0 +1,11 @@
+appId: com.shopai.app
+---
+- launchApp
+- tapOn: "you@example.com"
+- inputText: "demo@shopai.com"
+- tapOn: "Ít nhất 6 ký tự"
+- inputText: "123456"
+- tapOn: "Đăng nhập ngay"
+- assertVisible: "Khám phá"
+# Kiểm tra luôn Bottom Tab "Giỏ hàng" (MainTabNavigator, Chương 5) có hiển thị sau khi đăng nhập
+- assertVisible: "Giỏ hàng"
