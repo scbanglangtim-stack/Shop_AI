@@ -9,6 +9,8 @@ import ShopButton from '@components/ShopButton';
 import { useCartStore, CartItem } from '@store/useCartStore';
 import { useOrderStore } from '@store/useOrderStore';
 import { COLORS, SIZES } from '@constants/theme';
+import { logCrashlytics, recordCrashlyticsError, setCrashlyticsAttributes } from '@services/crashlyticsService';
+import { APP_ENV, API_BASE_URL } from '@constants/env';
 
 import axiosClient from '@api/axiosClient';
 
@@ -59,6 +61,9 @@ const CheckoutScreen = () => {
       queryClient.invalidateQueries({ queryKey: ['orders'] });
       queryClient.invalidateQueries({ queryKey: ['productsList'] });
 
+      // Ghi nhận log thành công
+      logCrashlytics(`Checkout: đặt hàng THÀNH CÔNG, orderId = ${res.id}`);
+
       // 4. Tự động đóng modal và điều hướng về sau 1.5s
       setTimeout(() => {
         navigation.goBack();
@@ -66,10 +71,24 @@ const CheckoutScreen = () => {
     },
     onError: (err: any) => {
       console.error('❌ Đặt hàng thất bại:', err?.response?.data || err?.message);
+      // Ghi nhận Non-Fatal cho đội DevOps (Chương 10 - Bước 4b)
+      const errorMsg = err?.response?.data?.message || err?.message || 'Checkout failed';
+      logCrashlytics(`Checkout: đặt hàng THẤT BẠI - ${errorMsg}`);
+      recordCrashlyticsError(err instanceof Error ? err : new Error(errorMsg), 'CheckoutOrderFailed');
     },
   });
 
   const handleConfirmOrder = () => {
+    // Breadcrumb: rắc vụn bánh mì TRƯỚC khi gọi API
+    logCrashlytics(`Checkout: bắt đầu đặt hàng, ${items.length} loại sản phẩm`);
+    // Custom Keys: gắn bối cảnh môi trường và giỏ hàng
+    setCrashlyticsAttributes({
+      screen: 'CheckoutScreen',
+      cart_item_count: String(items.length),
+      cart_total: String(totalPrice),
+      app_env: APP_ENV,
+      api_base_url: API_BASE_URL,
+    });
     mutate();
   };
 

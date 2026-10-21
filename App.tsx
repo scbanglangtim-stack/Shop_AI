@@ -16,6 +16,7 @@ import { useAuthStore } from '@store/useAuthStore';
 import { reduxStore } from '@store/redux/store';
 import { useAppLock } from '@hooks/useAppLock';
 import { COLORS } from '@constants/theme';
+import { logCrashlytics } from '@services/crashlyticsService';
 
 // 1. Cấu hình TanStack Query Client
 const queryClient = new QueryClient({
@@ -63,6 +64,7 @@ function App(): React.JSX.Element {
   // Móc vào ổ cứng SecureStore (Keystore/Keychain) ngay khi App khởi chạy
   useEffect(() => {
     checkLocalToken();
+    logCrashlytics('App ShopAI đã khởi động.');
   }, [checkLocalToken]);
 
   // Canh gác App Lock: tự động khóa lại nếu app ở nền quá 2 phút (Phần 8.12)

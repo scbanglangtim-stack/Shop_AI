@@ -28,6 +28,8 @@ import { useCartStore } from '@store/useCartStore';
 import { Product, ProductListSchema } from '../types/product.schema';
 
 import { MOCK_PRODUCTS } from '@data/mockProducts';
+import { recordCrashlyticsError, triggerTestCrash } from '@services/crashlyticsService';
+import { APP_VERSION } from '@constants/env';
 
 const CATEGORIES = ['Tất cả', 'Điện thoại', 'Tai nghe', 'Đồng hồ', 'Phụ kiện'];
 const PAGE_SIZE = 10;
@@ -46,20 +48,26 @@ class NetworkError extends Error { }
 const API_URL = `${API_BASE_URL}/api/products`;
 
 const fetchProductsAPI = async (): Promise<Product[]> => {
-  const response = await fetch(API_URL);
-  if (!response.ok) {
-    throw new NetworkError('Lỗi mạng từ Server NestJS');
-  }
-  const rawData = await response.json();
+  try {
+    const response = await fetch(API_URL);
+    if (!response.ok) {
+      throw new NetworkError('Lỗi mạng từ Server NestJS');
+    }
+    const rawData = await response.json();
 
-  // TRẠM KIỂM SOÁT ZOD SCHEMA (Chương 6 & 9)
-  const result = ProductListSchema.safeParse(rawData);
-  if (!result.success) {
-    console.error('❌ Zod chặn dữ liệu bẩn từ Server NestJS:', result.error.format());
-    throw new ZodValidationError('Dữ liệu sản phẩm từ Server không hợp lệ (Zod validation failed)!');
-  }
+    // TRẠM KIỂM SOÁT ZOD SCHEMA (Chương 6 & 9)
+    const result = ProductListSchema.safeParse(rawData);
+    if (!result.success) {
+      console.error('❌ Zod chặn dữ liệu bẩn từ Server NestJS:', result.error.format());
+      throw new ZodValidationError('Dữ liệu sản phẩm từ Server không hợp lệ (Zod validation failed)!');
+    }
 
-  return result.data;
+    return result.data;
+  } catch (error) {
+    // Ghi nhận lỗi Non-Fatal lên Firebase Crashlytics (Chương 10 - Bước 4)
+    recordCrashlyticsError(error as Error, 'ProductFetchFailed');
+    throw error;
+  }
 };
 
 // Component FlashSale riêng biệt để chỉ có nó đếm ngược 1s/lần, không làm cả HomeScreen re-render
@@ -400,6 +408,20 @@ const HomeScreen = () => {
           navigation.navigate('Cart');
         }}
       />
+
+      {/* Nút test Crash ẩn chỉ hiện khi __DEV__ (Chương 10 - Bước 3) */}
+      {__DEV__ && (
+        <Pressable
+          onLongPress={() => {
+            triggerTestCrash();
+          }}
+          style={{ padding: 8, alignItems: 'center' }}
+        >
+          <Text style={{ textAlign: 'center', fontSize: 10, color: colors.textLight || '#ccc' }}>
+            ShopAI v{APP_VERSION} (Dev: nhấn giữ 2s để test Crashlytics)
+          </Text>
+        </Pressable>
+      )}
     </SafeAreaView>
   );
 };
