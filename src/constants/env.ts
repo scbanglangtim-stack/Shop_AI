@@ -7,10 +7,13 @@ export type AppEnv = 'development' | 'staging' | 'production';
 export const APP_ENV: AppEnv = __DEV__ ? 'development' : 'production';
 
 // Bảng địa chỉ Server — kết nối trực tiếp đến NestJS Backend của ShopAI
+// IP Wi-Fi LAN hiện tại của máy tính: 10.82.144.78
+export const LAN_SERVER_URL = 'http://10.82.144.78:3000';
+
 const API_URLS: Record<AppEnv, string> = {
-  development: 'http://localhost:3000',
-  staging: 'http://10.10.42.115:3000',
-  production: 'http://localhost:3000',
+  development: LAN_SERVER_URL,
+  staging: LAN_SERVER_URL,
+  production: LAN_SERVER_URL,
 };
 
 export const API_BASE_URL = API_URLS[APP_ENV];

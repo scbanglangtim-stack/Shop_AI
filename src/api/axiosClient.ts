@@ -32,11 +32,14 @@ axiosClient.interceptors.response.use(
       return Promise.reject(error);
     }
 
-    // Nếu lỗi mất kết nối mạng và chưa thử qua LAN IP
+    // Nếu lỗi mất kết nối mạng và chưa thử host dự phòng
     if (!error.response && config && !config._isRetryLAN) {
       config._isRetryLAN = true;
-      if (config.baseURL?.includes('localhost')) {
-        config.baseURL = 'http://10.10.42.115:3000';
+      if (config.baseURL?.includes('10.82.144.78')) {
+        config.baseURL = 'http://localhost:3000';
+        return axiosClient(config);
+      } else if (config.baseURL?.includes('localhost')) {
+        config.baseURL = 'http://10.82.144.78:3000';
         return axiosClient(config);
       }
     }

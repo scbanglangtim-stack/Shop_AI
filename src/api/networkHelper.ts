@@ -4,8 +4,8 @@ import axios from 'axios';
 import { useAuthStore } from '@store/useAuthStore';
 
 export const SERVER_HOSTS = [
+  'http://10.82.144.78:3000',
   'http://localhost:3000',
-  'http://10.10.42.115:3000',
 ];
 
 let currentHost = SERVER_HOSTS[0];
