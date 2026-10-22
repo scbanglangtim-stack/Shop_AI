@@ -15,8 +15,8 @@ export interface AuthState {
 
 export const useAuthStore = create<AuthState>((set) => ({
   token: null,
-  isLoading: false, // Mở lên là lên luôn tức thì, không bị chặn bởi màn hình loading
-  isUnlocked: true, // Vào thẳng app mà không cần qua gate loading
+  isLoading: true, // Kiểm tra SecureStore Keystore khi khởi chạy
+  isUnlocked: false, // Yêu cầu sinh trắc học khi đã đăng nhập
 
   setIsUnlocked: (value: boolean) => set({ isUnlocked: value }),
 
@@ -37,7 +37,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (e) {
       console.log('Lỗi xóa SecureStore:', e);
     }
-    set({ token: null, isUnlocked: true, isLoading: false });
+    set({ token: null, isUnlocked: false, isLoading: false });
   },
 
   // Hàm móc dữ liệu từ Keystore lên khi người dùng vừa khởi động lại điện thoại
@@ -45,13 +45,13 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const storedToken = await SecureStore.getItemAsync('SHOP_ACCESS_TOKEN');
       if (storedToken) {
-        set({ token: storedToken, isUnlocked: true, isLoading: false });
+        set({ token: storedToken, isUnlocked: false, isLoading: false });
       } else {
-        set({ token: null, isUnlocked: true, isLoading: false });
+        set({ token: null, isUnlocked: false, isLoading: false });
       }
     } catch (e) {
       console.log('Lỗi Keystore:', e);
-      set({ token: null, isUnlocked: true, isLoading: false });
+      set({ token: null, isUnlocked: false, isLoading: false });
     } finally {
       set({ isLoading: false });
     }
