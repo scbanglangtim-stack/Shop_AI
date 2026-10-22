@@ -137,6 +137,10 @@ const HomeScreen = () => {
     queryKey: ['productsList'],
     queryFn: fetchProductsAPI,
     retry: 1,
+    retryDelay: 1000,
+    staleTime: 3000,
+    refetchInterval: 5000, // Tự động thăm dò kết nối Backend mỗi 5s để ngắt ngay khi Backend tắt
+    refetchIntervalInBackground: false,
   });
 
   const productList = allProducts || [];
@@ -422,23 +426,21 @@ const HomeScreen = () => {
     >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {isLoading && (!allProducts || allProducts.length === 0) && (
+      {isError ? (
+        <OfflineStateView
+          onRetry={async () => {
+            await refetch();
+          }}
+          message="Không thể kết nối đến máy chủ cơ sở dữ liệu ShopAI. Máy chủ Backend đang tắt hoặc mất kết nối mạng. Toàn bộ dữ liệu hiển thị đã bị ngắt để đảm bảo an toàn và tính đồng nhất."
+        />
+      ) : isLoading && (!allProducts || allProducts.length === 0) ? (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Typography variant="body2" color={colors.textLight} style={{ marginTop: 12 }}>
             Đang kết nối cơ sở dữ liệu máy chủ ShopAI...
           </Typography>
         </View>
-      )}
-
-      {isError && (!allProducts || allProducts.length === 0) && (
-        <OfflineStateView
-          onRetry={() => refetch()}
-          message="Không thể kết nối đến máy chủ cơ sở dữ liệu ShopAI. Khi mất mạng, ứng dụng không lấy sản phẩm giả để đảm bảo tính bảo mật và sự đồng nhất dữ liệu."
-        />
-      )}
-
-      {allProducts && allProducts.length > 0 && (
+      ) : allProducts && allProducts.length > 0 ? (
         <FlashList
           ref={listRef}
           data={filteredProducts}
@@ -487,7 +489,7 @@ const HomeScreen = () => {
             />
           )}
         />
-      )}
+      ) : null}
 
       {/* Bảng Thêm giỏ hàng / Mua ngay / Chọn số lượng siêu mượt */}
       <QuickBuyModal
