@@ -19,22 +19,18 @@ import { API_BASE_URL } from '@constants/api';
 import { Product, ProductSchema } from '../types/product.schema';
 import { COLORS, SIZES } from '@constants/theme';
 import type { HomeStackParamList } from '@navigation/HomeStackNavigator';
+import { requestWithFallback } from '@api/networkHelper';
+import OfflineStateView from '@components/OfflineStateView';
 
 type ProductDetailRouteProp = RouteProp<HomeStackParamList, 'ProductDetail'>;
 
 const fetchProductById = async (id: string): Promise<Product> => {
-  const response = await fetch(`${API_BASE_URL}/api/products/${id}`);
+  const { data } = await requestWithFallback<Product>(`/api/products/${id}`, {
+    method: 'GET',
+    timeout: 3500,
+  });
 
-  // Bắt đúng mã 404 mà NestJS ném ra ở Bước 7c — hai đầu ăn khớp nhau
-  if (response.status === 404) {
-    throw new Error('Sản phẩm này không còn tồn tại trên hệ thống');
-  }
-  if (!response.ok) {
-    throw new Error('Lỗi mạng khi tải chi tiết sản phẩm');
-  }
-
-  const raw = await response.json();
-  const result = ProductSchema.safeParse(raw); // Vẫn giữ trạm kiểm soát Zod từ Chương 6
+  const result = ProductSchema.safeParse(data);
   if (!result.success) {
     throw new Error('Dữ liệu chi tiết sản phẩm không hợp lệ (Zod)');
   }
@@ -47,20 +43,17 @@ const ProductDetailScreen = () => {
   const queryClient = useQueryClient();
   const addItem = useCartStore((state) => state.addItem);
 
-  const { data: product, isLoading, isError, error } = useQuery({
+  const { data: product, isLoading, isError, error, refetch } = useQuery({
     queryKey: ['product', productId],
     queryFn: () => fetchProductById(productId),
-    placeholderData: () =>
-      queryClient
-        .getQueryData<Product[]>(['productsList'])
-        ?.find((p) => p.id === productId),
+    retry: 1,
   });
 
   if (isLoading && !product) {
     return (
       <SafeAreaView style={styles.safeArea}>
         <View style={styles.notFoundContainer}>
-          <Text style={styles.notFound}>Đang tải chi tiết sản phẩm...</Text>
+          <Text style={styles.notFound}>Đang kết nối Database tải chi tiết sản phẩm...</Text>
         </View>
       </SafeAreaView>
     );
@@ -69,12 +62,10 @@ const ProductDetailScreen = () => {
   if (isError || !product) {
     return (
       <SafeAreaView style={styles.safeArea}>
-        <View style={styles.notFoundContainer}>
-          <Text style={styles.notFoundEmoji}>⚠️</Text>
-          <Text style={styles.notFound}>
-            {(error as Error)?.message ?? `Không tìm thấy sản phẩm với ID: ${productId}`}
-          </Text>
-        </View>
+        <OfflineStateView
+          onRetry={() => refetch()}
+          message="Không thể kết nối máy chủ để tải thông tin chi tiết sản phẩm này. Vui lòng kiểm tra lại kết nối mạng!"
+        />
       </SafeAreaView>
     );
   }

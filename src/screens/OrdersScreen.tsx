@@ -9,6 +9,7 @@ import axiosClient from '@api/axiosClient';
 import { COLORS, SIZES, SHADOWS } from '@constants/theme';
 import ShopButton from '@components/ShopButton';
 import { formatCurrency } from '@utils/formatCurrency';
+import { useOrderStore } from '@store/useOrderStore';
 
 interface BackendOrderItem {
   productId: string;
@@ -26,8 +27,9 @@ interface BackendOrder {
 
 const OrdersScreen = () => {
   const navigation = useNavigation<any>();
+  const localOrders = useOrderStore((state) => state.orders);
 
-  // Fetch danh sách đơn hàng của User đang đăng nhập qua API NestJS
+  // Fetch danh sách đơn hàng của User đang đăng nhập qua API NestJS hoặc Local Store
   const {
     data: orders = [],
     isLoading,
@@ -36,8 +38,21 @@ const OrdersScreen = () => {
   } = useQuery<BackendOrder[]>({
     queryKey: ['orders'],
     queryFn: async () => {
-      const res = await axiosClient.get('/api/orders');
-      return res.data;
+      try {
+        const res = await axiosClient.get('/api/orders', { timeout: 1500 });
+        if (res.data && Array.isArray(res.data) && res.data.length > 0) {
+          return res.data;
+        }
+      } catch (e) {
+        // Fallback sang local store khi offline
+      }
+      return localOrders.map((o) => ({
+        id: o.id,
+        total: o.total,
+        status: o.status,
+        createdAt: o.createdAt,
+        items: o.items.map((i) => ({ productId: i.id, quantity: i.quantity, price: i.price })),
+      }));
     },
   });
 

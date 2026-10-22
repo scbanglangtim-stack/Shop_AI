@@ -16,7 +16,8 @@ class MainApplication : Application(), ReactApplication {
         PackageList(this).packages.apply {
           add(ShopAIPackage())
         },
-      jsMainModulePath = "index"
+      jsMainModulePath = "index",
+      useDevSupport = false // Mở lên là lên luôn tức thì, không kết nối Metro hay loading từ localhost
     )
   }
 

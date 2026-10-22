@@ -23,6 +23,9 @@ model Product {
   name      String
   price     Int
   image     String
+  category  String?
+  rating    Float?
+  discount  Boolean?
   createdAt DateTime @default(now())
 }
 

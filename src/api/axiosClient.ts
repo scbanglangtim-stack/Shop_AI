@@ -21,13 +21,24 @@ axiosClient.interceptors.request.use((config) => {
   return config;
 });
 
-// 2. RESPONSE INTERCEPTOR: Bắt lỗi 401 (Token hết hạn / không hợp lệ) tập trung một chỗ
+// 2. RESPONSE INTERCEPTOR: Xử lý 401 và tự động chuyển đổi giữa USB localhost và Wi-Fi IP
 axiosClient.interceptors.response.use(
   (response) => response,
-  (error) => {
+  async (error) => {
+    const config = error.config;
     if (error.response?.status === 401) {
       console.warn('⚠️ Token hết hạn hoặc không hợp lệ — tự động đăng xuất!');
       useAuthStore.getState().logout();
+      return Promise.reject(error);
+    }
+
+    // Nếu lỗi mất kết nối mạng và chưa thử qua LAN IP
+    if (!error.response && config && !config._isRetryLAN) {
+      config._isRetryLAN = true;
+      if (config.baseURL?.includes('localhost')) {
+        config.baseURL = 'http://10.10.42.115:3000';
+        return axiosClient(config);
+      }
     }
     return Promise.reject(error);
   }

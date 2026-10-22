@@ -1,7 +1,7 @@
 // src/screens/CheckoutScreen.tsx
 // Màn hình Thanh toán hoàn thiện vòng lặp mua sắm bằng useMutation (Chương 6.5 & Sprint 6 Step 9.5)
 import React from 'react';
-import { View, Text, StyleSheet, ActivityIndicator, ScrollView } from 'react-native';
+import { View, Text, StyleSheet, ActivityIndicator, ScrollView, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
@@ -23,10 +23,15 @@ interface CreateOrderResponse {
 }
 
 const placeOrderAPI = async (items: CartItem[], total: number): Promise<CreateOrderResponse> => {
-  const response = await axiosClient.post('/api/orders', {
-    items: items.map((item) => ({ productId: item.id, quantity: item.quantity })),
-    total,
-  });
+  // Gửi trực tiếp lên NestJS Database thông qua axiosClient
+  const response = await axiosClient.post(
+    '/api/orders',
+    {
+      items: items.map((item) => ({ productId: item.id, quantity: item.quantity })),
+      total,
+    },
+    { timeout: 6000 }
+  );
   return response.data;
 };
 
@@ -69,10 +74,19 @@ const CheckoutScreen = () => {
     },
     onError: (err: any) => {
       console.error('❌ Đặt hàng thất bại:', err?.response?.data || err?.message);
-      // Ghi nhận Non-Fatal cho đội DevOps (Chương 10 - Bước 4b)
-      const errorMsg = err?.response?.data?.message || err?.message || 'Checkout failed';
+      const errorMsg =
+        err?.response?.data?.message ||
+        err?.message ||
+        'Không thể kết nối đến máy chủ ShopAI.';
+
+      Alert.alert(
+        '⚠️ Mất kết nối mạng',
+        'Không thể lưu đơn hàng vào hệ thống cơ sở dữ liệu khi mất kết nối mạng. Mọi giao dịch mua hàng đều yêu cầu mạng để đồng bộ và bảo đảm tính toàn vẹn dữ liệu.\n\nVui lòng kiểm tra lại kết nối Wi-Fi/4G và bấm Thử lại!',
+        [{ text: 'Đã hiểu' }]
+      );
+
       logCrashlytics(`Checkout: đặt hàng THẤT BẠI - ${errorMsg}`);
-      recordCrashlyticsError(err instanceof Error ? err : new Error(errorMsg), 'CheckoutOrderFailed');
+      recordCrashlyticsError(err instanceof Error ? err : new Error(String(errorMsg)), 'CheckoutOrderFailed');
     },
   });
 

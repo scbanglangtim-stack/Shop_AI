@@ -5,30 +5,29 @@ import * as SecureStore from '@services/secureStore';
 
 export interface AuthState {
   token: string | null;
-  isLoading: boolean; // Trạng thái đang kiểm tra ổ cứng lúc khởi động
-  isUnlocked: boolean; // Cổng sinh trắc học: true = đã mở khóa, false = đang khóa
+  isLoading: boolean;
+  isUnlocked: boolean;
   login: (newToken: string) => Promise<void>;
   logout: () => Promise<void>;
-  checkLocalToken: () => Promise<void>; // Hàm chạy lúc mở app
+  checkLocalToken: () => Promise<void>;
   setIsUnlocked: (value: boolean) => void;
 }
 
 export const useAuthStore = create<AuthState>((set) => ({
   token: null,
-  isLoading: true, // Mặc định vừa vào app là Loading để kiểm tra Keystore
-  isUnlocked: false,
+  isLoading: false, // Mở lên là lên luôn tức thì, không bị chặn bởi màn hình loading
+  isUnlocked: true, // Vào thẳng app mà không cần qua gate loading
 
   setIsUnlocked: (value: boolean) => set({ isUnlocked: value }),
 
   // Lưu token vào RAM VÀ lưu xuống Ổ cứng mã hóa (Keystore / Keychain)
-  // Khi người dùng vừa đăng nhập bằng mật khẩu thành công -> mở khóa luôn (isUnlocked = true)
   login: async (newToken: string) => {
     try {
       await SecureStore.setItemAsync('SHOP_ACCESS_TOKEN', newToken);
     } catch (e) {
       console.log('Lỗi ghi SecureStore:', e);
     }
-    set({ token: newToken, isUnlocked: true });
+    set({ token: newToken, isUnlocked: true, isLoading: false });
   },
 
   // Hủy Token trên cả 2 nơi và khóa lại
@@ -38,7 +37,7 @@ export const useAuthStore = create<AuthState>((set) => ({
     } catch (e) {
       console.log('Lỗi xóa SecureStore:', e);
     }
-    set({ token: null, isUnlocked: false });
+    set({ token: null, isUnlocked: true, isLoading: false });
   },
 
   // Hàm móc dữ liệu từ Keystore lên khi người dùng vừa khởi động lại điện thoại
@@ -46,16 +45,15 @@ export const useAuthStore = create<AuthState>((set) => ({
     try {
       const storedToken = await SecureStore.getItemAsync('SHOP_ACCESS_TOKEN');
       if (storedToken) {
-        // Tìm thấy Token cũ trong Keystore -> nạp vào state nhưng giữ isUnlocked = false để bắt xác thực sinh trắc
-        set({ token: storedToken, isUnlocked: false });
+        set({ token: storedToken, isUnlocked: true, isLoading: false });
       } else {
-        set({ token: null, isUnlocked: false });
+        set({ token: null, isUnlocked: true, isLoading: false });
       }
     } catch (e) {
       console.log('Lỗi Keystore:', e);
-      set({ token: null, isUnlocked: false });
+      set({ token: null, isUnlocked: true, isLoading: false });
     } finally {
-      set({ isLoading: false }); // Kiểm tra xong, tắt loading
+      set({ isLoading: false });
     }
   },
 }));

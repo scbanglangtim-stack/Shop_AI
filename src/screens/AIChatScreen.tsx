@@ -1,9 +1,10 @@
 // src/screens/AIChatScreen.tsx
-// Màn hình Trợ lý Tư vấn Trí tuệ Nhân tạo ShopAI (Chương 8.9, 8.10 & Sprint 8)
-import React, { useCallback, useRef, useState } from 'react';
+// Màn hình Trợ lý Mua Sắm AI & Chăm Sóc Khách Hàng ShopAI Store
+import React, { useCallback, useEffect, useRef, useState } from 'react';
 import {
   ActivityIndicator,
   FlatList,
+  Keyboard,
   KeyboardAvoidingView,
   Platform,
   Pressable,
@@ -17,15 +18,17 @@ import ShopButton from '@components/ShopButton';
 import { COLORS, SIZES } from '@constants/theme';
 import { AI_GREETING, AI_SUGGESTIONS } from '@constants/aiPrompt';
 import { askShopAI, toFriendlyError, type ChatTurn } from '@services/geminiService';
+import { useTheme } from '@contexts/ThemeContext';
 
 type Message = {
   id: string;
   text: string;
   isBot: boolean;
-  status?: 'sent' | 'error'; // 'error' -> hiện nút Thử lại (Phần 8.10)
+  status?: 'sent' | 'error';
 };
 
 export default function AIChatScreen() {
+  const { colors, isDark } = useTheme();
   const [messages, setMessages] = useState<Message[]>([
     { id: 'greeting', text: AI_GREETING, isBot: true, status: 'sent' },
   ]);
@@ -33,25 +36,36 @@ export default function AIChatScreen() {
   const [isTyping, setIsTyping] = useState(false);
 
   const listRef = useRef<FlatList<Message>>(null);
-  // Lưu lại câu hỏi vừa lỗi để nút "Thử lại" biết phải gửi lại cái gì
   const lastQuestionRef = useRef<string>('');
 
-  const scrollToEnd = () => {
-    // Hoãn một nhịp để FlatList kịp render item mới rồi mới cuộn
-    setTimeout(() => listRef.current?.scrollToEnd({ animated: true }), 100);
-  };
+  const scrollToEnd = useCallback(() => {
+    setTimeout(() => {
+      listRef.current?.scrollToEnd({ animated: true });
+    }, 120);
+  }, []);
 
-  /** Dựng lịch sử hội thoại theo đúng định dạng Gemini yêu cầu. */
+  // Lắng nghe sự kiện bàn phím hiện để tự động cuộn FlatList lên, ô nhập luôn sát ngay trên bàn phím
+  useEffect(() => {
+    const showSub = Keyboard.addListener(
+      Platform.OS === 'ios' ? 'keyboardWillShow' : 'keyboardDidShow',
+      () => {
+        scrollToEnd();
+      }
+    );
+    return () => showSub.remove();
+  }, [scrollToEnd]);
+
+  /** Dựng lịch sử hội thoại */
   const buildHistory = useCallback((list: Message[]): ChatTurn[] => {
     return list
-      .filter((m) => m.id !== 'greeting' && m.status !== 'error') // Bỏ câu chào và các tin lỗi
+      .filter((m) => m.id !== 'greeting' && m.status !== 'error')
       .map((m) => ({
         role: m.isBot ? ('model' as const) : ('user' as const),
         parts: [{ text: m.text }],
       }));
   }, []);
 
-  /** Lõi gửi tin — dùng chung cho cả nút Gửi lẫn nút Thử lại. */
+  /** Lõi gửi tin */
   const send = useCallback(
     async (question: string, historySource: Message[]) => {
       lastQuestionRef.current = question;
@@ -79,13 +93,13 @@ export default function AIChatScreen() {
         scrollToEnd();
       }
     },
-    [buildHistory],
+    [buildHistory, scrollToEnd],
   );
 
   const handleSend = useCallback(
     (overrideText?: string) => {
       const text = (overrideText ?? inputText).trim();
-      if (!text || isTyping) return; // Chống spam: đang chờ AI thì không cho gửi tiếp
+      if (!text || isTyping) return;
 
       const userMsg: Message = {
         id: `user-${Date.now()}`,
@@ -96,13 +110,13 @@ export default function AIChatScreen() {
       const next = [...messages, userMsg];
 
       setMessages(next);
-      setInputText(''); // Xoá ô nhập NGAY LẬP TỨC để user cảm thấy phản hồi tức thì
+      setInputText('');
       send(text, next);
     },
     [inputText, isTyping, messages, send],
   );
 
-  /** Nút Thử lại: xoá bong bóng lỗi cuối cùng rồi gửi lại đúng câu hỏi cũ. */
+  /** Nút Thử lại khi gặp lỗi */
   const handleRetry = useCallback(() => {
     if (isTyping || !lastQuestionRef.current) return;
     const cleaned = messages.filter((m) => m.status !== 'error');
@@ -110,44 +124,61 @@ export default function AIChatScreen() {
     send(lastQuestionRef.current, cleaned);
   }, [isTyping, messages, send]);
 
-  const renderItem = ({ item }: { item: Message }) => (
-    <View>
-      <View
-        style={[
-          styles.bubble,
-          item.isBot ? styles.botBubble : styles.userBubble,
-          item.status === 'error' && styles.errorBubble,
-        ]}
-      >
-        <Text
-          selectable // Cho phép chạm giữ để copy (Phần 8.10)
-          style={{ color: item.isBot ? 'black' : 'white' }}
+  const renderItem = ({ item }: { item: Message }) => {
+    const isBot = item.isBot;
+    return (
+      <View>
+        <View
+          style={[
+            styles.bubble,
+            isBot
+              ? [styles.botBubble, { backgroundColor: isDark ? '#2C2C2E' : '#F0F2F5' }]
+              : [styles.userBubble, { backgroundColor: colors.primary }],
+            item.status === 'error' && styles.errorBubble,
+          ]}
         >
-          {item.text}
-        </Text>
+          <Text
+            selectable
+            style={{
+              color: isBot ? (isDark ? '#FFFFFF' : '#1C1C1E') : '#FFFFFF',
+              fontSize: 14,
+              lineHeight: 20,
+            }}
+          >
+            {item.text}
+          </Text>
+        </View>
+
+        {item.status === 'error' && (
+          <Pressable onPress={handleRetry} style={styles.retryBtn}>
+            <Text style={[styles.retryText, { color: colors.primary }]}>🔄 Thử lại</Text>
+          </Pressable>
+        )}
       </View>
+    );
+  };
 
-      {item.status === 'error' && (
-        <Pressable onPress={handleRetry} style={styles.retryBtn}>
-          <Text style={styles.retryText}>🔄 Thử lại</Text>
-        </Pressable>
-      )}
-    </View>
-  );
-
-  /** Trạng thái rỗng: gợi ý sẵn câu hỏi để user biết hỏi gì (Phần 8.10). */
+  /** Trạng thái gợi ý cho người mua sắm */
   const renderSuggestions = () => (
     <View style={styles.suggestBox}>
-      <Text style={styles.suggestTitle}>Gợi ý cho bạn:</Text>
+      <Text style={[styles.suggestTitle, { color: colors.textLight }]}>
+        💡 Gợi ý câu hỏi dành cho quý khách:
+      </Text>
       <View style={styles.chipRow}>
         {AI_SUGGESTIONS.map((s) => (
           <Pressable
             key={s}
-            style={styles.chip}
+            style={[
+              styles.chip,
+              {
+                backgroundColor: isDark ? '#3A1C20' : '#FFF1F0',
+                borderColor: colors.primary,
+              },
+            ]}
             onPress={() => handleSend(s)}
             disabled={isTyping}
           >
-            <Text style={styles.chipText}>{s}</Text>
+            <Text style={[styles.chipText, { color: colors.primary }]}>{s}</Text>
           </Pressable>
         ))}
       </View>
@@ -163,27 +194,31 @@ export default function AIChatScreen() {
 
   const handleVoiceInput = (sampleText: string) => {
     setInputText(sampleText);
+    setTimeout(scrollToEnd, 100);
   };
 
   return (
-    <SafeAreaView style={styles.safeArea} edges={['bottom']}>
+    <SafeAreaView style={[styles.safeArea, { backgroundColor: colors.background }]} edges={['top', 'left', 'right']}>
       <KeyboardAvoidingView
-        style={styles.container}
-        behavior={Platform.OS === 'ios' ? 'padding' : undefined}
+        style={[styles.container, { backgroundColor: colors.background }]}
+        behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
         keyboardVerticalOffset={Platform.OS === 'ios' ? 90 : 0}
       >
-        <View style={styles.header}>
+        <View style={[styles.header, { backgroundColor: colors.surface, borderBottomColor: isDark ? colors.border : '#F0F0F0' }]}>
           <View style={styles.headerLeft}>
             <View style={styles.onlineDot} />
             <View>
-              <Text style={styles.headerTitle}>Nhân viên AI (Gemini)</Text>
-              <Text style={styles.headerSub}>
-                {isTyping ? 'Đang suy nghĩ & soạn tin...' : 'Trực tuyến • Tư vấn 24/7'}
+              <Text style={[styles.headerTitle, { color: colors.text }]}>Trợ Lý Mua Sắm AI</Text>
+              <Text style={[styles.headerSub, { color: colors.textLight }]}>
+                {isTyping ? 'Đang soạn câu trả lời...' : 'Trực tuyến • Tư vấn sản phẩm & đặt hàng 24/7'}
               </Text>
             </View>
           </View>
-          <Pressable onPress={handleResetChat} style={styles.resetBtn}>
-            <Text style={styles.resetBtnText}>🔄 Làm mới</Text>
+          <Pressable
+            onPress={handleResetChat}
+            style={[styles.resetBtn, { backgroundColor: isDark ? '#333' : '#F5F5F5' }]}
+          >
+            <Text style={[styles.resetBtnText, { color: colors.text }]}>🔄 Làm mới</Text>
           </Pressable>
         </View>
 
@@ -194,41 +229,68 @@ export default function AIChatScreen() {
           renderItem={renderItem}
           contentContainerStyle={{ padding: SIZES.padding, flexGrow: 1 }}
           onContentSizeChange={scrollToEnd}
-          keyboardShouldPersistTaps="handled" // Bấm chip gợi ý được ngay cả khi bàn phím đang mở
+          keyboardShouldPersistTaps="handled"
           ListFooterComponent={
             <>
               {messages.length <= 1 && renderSuggestions()}
               {isTyping && (
-                <View style={[styles.bubble, styles.botBubble, styles.typingBubble]}>
-                  <ActivityIndicator size="small" color="#666" />
-                  <Text style={styles.typingText}>  Trợ lý đang soạn tin...</Text>
+                <View
+                  style={[
+                    styles.bubble,
+                    styles.botBubble,
+                    styles.typingBubble,
+                    { backgroundColor: isDark ? '#2C2C2E' : '#F0F2F5' },
+                  ]}
+                >
+                  <ActivityIndicator size="small" color={colors.primary} />
+                  <Text style={[styles.typingText, { color: colors.textLight }]}>  Trợ lý đang soạn câu trả lời...</Text>
                 </View>
               )}
             </>
           }
         />
 
-        {/* Khung nhập tin nhắn + Voice-to-Text (Phần 8.13) */}
-        <View style={styles.inputArea}>
+        {/* Khung nhập tin nhắn - Nhảy ngay lên trên sát bàn phím khi gõ */}
+        <View style={[styles.inputArea, { backgroundColor: colors.surface, borderTopColor: isDark ? colors.border : '#F0F0F0' }]}>
           <TextInput
-            style={styles.input}
+            style={[
+              styles.input,
+              {
+                backgroundColor: isDark ? '#2C2C2E' : '#F0F2F5',
+                color: isDark ? '#FFFFFF' : '#111111',
+                borderColor: isDark ? '#3A3A3C' : '#E8E8E8',
+              },
+            ]}
             value={inputText}
             onChangeText={setInputText}
-            placeholder="Nhập câu hỏi tư vấn..."
-            maxLength={500} // Chặn dán quá dài (Phần 8.11)
+            placeholder="Hỏi tư vấn sản phẩm, đặt hàng, phí ship..."
+            placeholderTextColor={isDark ? '#8E8E93' : '#888888'}
+            selectionColor={colors.primary}
+            maxLength={500}
             editable={!isTyping}
             multiline
+            onFocus={() => {
+              setTimeout(scrollToEnd, 150);
+            }}
             onSubmitEditing={() => handleSend()}
           />
 
-          {/* Nút Voice-to-Text gợi ý giọng nói (Phần 8.13) */}
+          {/* Nút gợi ý câu hỏi mua sắm */}
           <Pressable
-            style={styles.voiceBtn}
+            style={[
+              styles.voiceBtn,
+              {
+                backgroundColor: isDark ? '#3A1C20' : '#FFF2E8',
+                borderColor: isDark ? colors.primary : '#FFBB96',
+              },
+            ]}
             onPress={() => {
               const voiceSamples = [
-                'iPhone 15 giá bao nhiêu?',
-                'Tai nghe nào chống ồn tốt?',
-                'Tư vấn chuột công thái học làm việc',
+                'Tư vấn điện thoại pin trâu, chụp ảnh đẹp',
+                'Làm thế nào để mua hàng và thanh toán?',
+                'Cách quét mã vạch sản phẩm bằng camera?',
+                'Phí ship giao hàng tính theo GPS thế nào?',
+                'Chính sách đổi trả & bảo hành của ShopAI?',
               ];
               const random = voiceSamples[Math.floor(Math.random() * voiceSamples.length)];
               handleVoiceInput(random);
@@ -251,17 +313,15 @@ export default function AIChatScreen() {
 }
 
 const styles = StyleSheet.create({
-  safeArea: { flex: 1, backgroundColor: COLORS.background },
-  container: { flex: 1, backgroundColor: COLORS.background },
+  safeArea: { flex: 1 },
+  container: { flex: 1 },
   header: {
     paddingHorizontal: 16,
     paddingVertical: 12,
-    backgroundColor: COLORS.surface,
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
     borderBottomWidth: 1,
-    borderBottomColor: '#F0F0F0',
   },
   headerLeft: {
     flexDirection: 'row',
@@ -274,28 +334,24 @@ const styles = StyleSheet.create({
     borderRadius: 5,
     backgroundColor: '#52c41a',
   },
-  headerTitle: { fontSize: 16, fontWeight: 'bold', color: COLORS.text },
-  headerSub: { fontSize: 11, color: '#777', marginTop: 2 },
+  headerTitle: { fontSize: 16, fontWeight: 'bold' },
+  headerSub: { fontSize: 11, marginTop: 2 },
   resetBtn: {
     paddingHorizontal: 10,
     paddingVertical: 6,
     borderRadius: 12,
-    backgroundColor: '#F5F5F5',
   },
   resetBtnText: {
     fontSize: 12,
-    color: '#555',
     fontWeight: '600',
   },
 
-  bubble: { padding: 14, borderRadius: 18, marginBottom: 10, maxWidth: '82%' },
+  bubble: { padding: 14, borderRadius: 18, marginBottom: 10, maxWidth: '85%' },
   botBubble: {
-    backgroundColor: '#F0F2F5',
     alignSelf: 'flex-start',
     borderBottomLeftRadius: 4,
   },
   userBubble: {
-    backgroundColor: COLORS.primary,
     alignSelf: 'flex-end',
     borderBottomRightRadius: 4,
   },
@@ -305,57 +361,50 @@ const styles = StyleSheet.create({
     borderColor: COLORS.error,
   },
   typingBubble: { flexDirection: 'row', alignItems: 'center' },
-  typingText: { color: '#666', fontSize: 13 },
+  typingText: { fontSize: 13 },
 
   retryBtn: { alignSelf: 'flex-start', marginBottom: 12, paddingHorizontal: 4 },
-  retryText: { color: COLORS.primary, fontWeight: 'bold', fontSize: 13 },
+  retryText: { fontWeight: 'bold', fontSize: 13 },
 
   suggestBox: { marginTop: 8, marginBottom: 16 },
-  suggestTitle: { fontSize: 13, color: '#777', marginBottom: 8, fontWeight: '500' },
+  suggestTitle: { fontSize: 13, marginBottom: 8, fontWeight: '700' },
   chipRow: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
   chip: {
     borderWidth: 1,
-    borderColor: COLORS.primary,
     borderRadius: 16,
     paddingHorizontal: 12,
     paddingVertical: 8,
-    backgroundColor: '#FFF1F0',
   },
-  chipText: { color: COLORS.primary, fontSize: 12, fontWeight: '500' },
+  chipText: { fontSize: 12, fontWeight: '600' },
 
   inputArea: {
     flexDirection: 'row',
     padding: 10,
-    backgroundColor: COLORS.surface,
     alignItems: 'center',
     borderTopWidth: 1,
-    borderTopColor: '#F0F0F0',
     gap: 8,
+    paddingBottom: Platform.OS === 'android' ? 10 : 12,
   },
   input: {
     flex: 1,
     minHeight: 42,
     maxHeight: 100,
-    backgroundColor: '#F5F5F5',
     borderRadius: 21,
     paddingHorizontal: 16,
     paddingTop: 10,
     paddingBottom: 10,
     fontSize: 14,
-    color: COLORS.text,
+    borderWidth: 1,
   },
   voiceBtn: {
     width: 42,
     height: 42,
     borderRadius: 21,
-    backgroundColor: '#FFF2E8',
     justifyContent: 'center',
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#FFBB96',
   },
   voiceBtnText: {
     fontSize: 18,
   },
 });
-

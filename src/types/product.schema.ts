@@ -8,9 +8,10 @@ export const ProductSchema = z.object({
   name: z.string().min(1, 'Tên sản phẩm không được để trống'),
   price: z.number().positive('Giá sản phẩm phải lớn hơn 0'),
   image: z.union([z.string(), z.number(), z.any()]),
-  category: z.string().optional(),
-  rating: z.number().optional(),
-  discount: z.boolean().optional(),
+  category: z.string().nullable().optional(),
+  rating: z.number().nullable().optional(),
+  discount: z.boolean().nullable().optional(),
+  createdAt: z.any().optional(),
 });
 
 // Khuôn mẫu cho cả một Danh sách (Mảng) sản phẩm trả về từ API

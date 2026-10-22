@@ -1,15 +1,18 @@
 // src/screens/HomeScreen.tsx
 // Màn hình Trang Chủ ShopAI - Phân trang useInfiniteQuery, Zod Schema & Zustand (Chương 6)
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useRef } from 'react';
 import {
   View,
   Text,
   TextInput,
   RefreshControl,
   Pressable,
+  ScrollView,
   StyleSheet,
   StatusBar,
   ActivityIndicator,
+  BackHandler,
+  Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation, useRoute } from '@react-navigation/native';
@@ -21,17 +24,25 @@ import ShopButton from '@components/ShopButton';
 import ProductCard from '@components/ProductCard';
 import LocationBadge from '@components/LocationBadge';
 import QuickBuyModal from '@components/QuickBuyModal';
+import OfflineStateView from '@components/OfflineStateView';
 import { useCountdown } from '@hooks/useCountdown';
 import { COLORS, SIZES, SHADOWS } from '@constants/theme';
 import { useAuthStore } from '@store/useAuthStore';
 import { useCartStore } from '@store/useCartStore';
 import { Product, ProductListSchema } from '../types/product.schema';
+import { requestWithFallback } from '@api/networkHelper';
 
-import { MOCK_PRODUCTS } from '@data/mockProducts';
 import { recordCrashlyticsError, triggerTestCrash } from '@services/crashlyticsService';
 import { APP_VERSION } from '@constants/env';
 
-const CATEGORIES = ['Tất cả', 'Điện thoại', 'Tai nghe', 'Đồng hồ', 'Phụ kiện'];
+const CATEGORIES = ['Tất cả', 'Điện thoại', 'Laptop', 'Tai nghe', 'Đồng hồ', 'Phụ kiện'];
+const PRICE_RANGES = [
+  { id: 'all', label: 'Tất cả mức giá', min: 0, max: Infinity },
+  { id: 'under_1m', label: 'Dưới 1 triệu', min: 0, max: 1_000_000 },
+  { id: '1m_5m', label: '1 - 5 triệu', min: 1_000_000, max: 5_000_000 },
+  { id: '5m_15m', label: '5 - 15 triệu', min: 5_000_000, max: 15_000_000 },
+  { id: 'above_15m', label: 'Trên 15 triệu', min: 15_000_000, max: Infinity },
+];
 const PAGE_SIZE = 10;
 const TOTAL_MOCK_PRODUCTS = 47;
 
@@ -40,34 +51,18 @@ interface ProductPage {
   nextPage: number | null;
 }
 
-import { API_BASE_URL } from '@constants/api';
-
-class ZodValidationError extends Error { }
-class NetworkError extends Error { }
-
-const API_URL = `${API_BASE_URL}/api/products`;
-
 const fetchProductsAPI = async (): Promise<Product[]> => {
-  try {
-    const response = await fetch(API_URL);
-    if (!response.ok) {
-      throw new NetworkError('Lỗi mạng từ Server NestJS');
-    }
-    const rawData = await response.json();
+  // Bắt buộc lấy dữ liệu từ cơ sở dữ liệu thật trên máy chủ NestJS
+  const { data } = await requestWithFallback<Product[]>('/api/products', {
+    method: 'GET',
+    timeout: 3500,
+  });
 
-    // TRẠM KIỂM SOÁT ZOD SCHEMA (Chương 6 & 9)
-    const result = ProductListSchema.safeParse(rawData);
-    if (!result.success) {
-      console.error('❌ Zod chặn dữ liệu bẩn từ Server NestJS:', result.error.format());
-      throw new ZodValidationError('Dữ liệu sản phẩm từ Server không hợp lệ (Zod validation failed)!');
-    }
-
+  const result = ProductListSchema.safeParse(data);
+  if (result.success && result.data && result.data.length > 0) {
     return result.data;
-  } catch (error) {
-    // Ghi nhận lỗi Non-Fatal lên Firebase Crashlytics (Chương 10 - Bước 4)
-    recordCrashlyticsError(error as Error, 'ProductFetchFailed');
-    throw error;
   }
+  throw new Error('Dữ liệu sản phẩm từ máy chủ không hợp lệ');
 };
 
 // Component FlashSale riêng biệt để chỉ có nó đếm ngược 1s/lần, không làm cả HomeScreen re-render
@@ -102,13 +97,37 @@ const HomeScreen = () => {
 
   const [search, setSearch] = useState('');
   const [selectedCategory, setSelectedCategory] = useState('Tất cả');
+  const [selectedPriceRange, setSelectedPriceRange] = useState('all');
   // Quản lý sản phẩm đang được chọn để mở QuickBuyModal
   const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
 
-  // TanStack useInfiniteQuery - Vũ khí phân trang & Caching tối thượng
-  // TanStack useQuery - Gọi API NestJS thật và lưu cache với key ['productsList']
+  // Giữ vị trí cuộn khi đổi bộ lọc để không bị giật / đẩy trang lên đầu
+  const listRef = useRef<any>(null);
+  const currentScrollY = useRef(0);
+
+  const handleSelectCategory = (cat: string) => {
+    const savedY = currentScrollY.current;
+    setSelectedCategory(cat);
+    setTimeout(() => {
+      if (listRef.current && savedY > 0) {
+        listRef.current.scrollToOffset({ offset: savedY, animated: false });
+      }
+    }, 40);
+  };
+
+  const handleSelectPriceRange = (rangeId: string) => {
+    const savedY = currentScrollY.current;
+    setSelectedPriceRange(rangeId);
+    setTimeout(() => {
+      if (listRef.current && savedY > 0) {
+        listRef.current.scrollToOffset({ offset: savedY, animated: false });
+      }
+    }, 40);
+  };
+
+  // TanStack useQuery nạp dữ liệu từ Database thực tế qua mạng
   const {
-    data: allProducts = [],
+    data: allProducts,
     isLoading,
     isError,
     error,
@@ -117,25 +136,30 @@ const HomeScreen = () => {
   } = useQuery({
     queryKey: ['productsList'],
     queryFn: fetchProductsAPI,
+    retry: 1,
   });
 
-  // Lọc sản phẩm theo danh mục và từ khóa tìm kiếm
+  const productList = allProducts || [];
+
+  // Lọc sản phẩm theo danh mục, từ khóa tìm kiếm và mức giá tiền
   const filteredProducts = useMemo(() => {
-    return allProducts.filter((p) => {
+    const currentPriceRange = PRICE_RANGES.find((r) => r.id === selectedPriceRange);
+    return productList.filter((p) => {
       const matchCat = selectedCategory === 'Tất cả' || p.category === selectedCategory;
       const matchSearch = p.name.toLowerCase().includes(search.trim().toLowerCase());
-      return matchCat && matchSearch;
+      const matchPrice =
+        !currentPriceRange ||
+        (p.price >= currentPriceRange.min && p.price <= currentPriceRange.max);
+      return matchCat && matchSearch && matchPrice;
     });
-  }, [allProducts, selectedCategory, search]);
+  }, [productList, selectedCategory, search, selectedPriceRange]);
 
   const handleOpenDetail = (productId: string) => {
     navigation.navigate('ProductDetail', { productId });
   };
 
   const errorMessage =
-    error instanceof ZodValidationError
-      ? '⚠️ Dữ liệu sản phẩm không hợp lệ (Lỗi Zod Validation) — vui lòng báo kỹ thuật viên!'
-      : '📡 Lỗi kết nối mạng — vui lòng kéo xuống để thử lại!';
+    (error as Error)?.message || '📡 Lỗi kết nối mạng — vui lòng kiểm tra lại kết nối!';
 
   const headerElement = useMemo(
     () => (
@@ -187,34 +211,54 @@ const HomeScreen = () => {
         {/* 2. Thẻ vị trí GPS & Phí giao hàng ước tính (Sprint 7) */}
         <LocationBadge />
 
-        {/* 3. Thanh nút Giỏ hàng, Hỏi AI (Sprint 8), Quét Mã Vạch (Sprint 7) & Đơn hàng */}
-        <View style={styles.cartActionRow}>
-          <ShopButton
-            title={`🛒 Giỏ (${totalQuantity})`}
-            onPress={() => navigation.navigate('Cart')}
-            style={styles.cartBtn}
-            textStyle={{ fontSize: 13 }}
-          />
-          <ShopButton
-            title="🤖 Hỏi AI"
-            onPress={() => navigation.navigate('AIChat')}
-            style={styles.aiBtn}
-            textStyle={{ fontSize: 13 }}
-          />
-          <ShopButton
-            title="📷 Quét"
-            variant="outline"
+        {/* 3. Thanh tác vụ: Hỏi Trợ Lý Mua Sắm AI (Chuyển sang Tab Hỏi AI dưới thanh đáy để tiết kiệm tài nguyên) & Quét Mã */}
+        <View style={styles.topActionRow}>
+          <Pressable
+            style={[
+              styles.heroAiBtn,
+              {
+                backgroundColor: isDark ? '#2A1828' : '#FFF2F0',
+                borderColor: colors.primary,
+              },
+            ]}
+            onPress={() => {
+              const parent = navigation.getParent();
+              if (parent) {
+                parent.navigate('AIChat');
+              } else {
+                navigation.navigate('AIChat');
+              }
+            }}
+          >
+            <View style={styles.heroAiIconBox}>
+              <Text style={{ fontSize: 20 }}>🤖</Text>
+            </View>
+            <View style={{ flex: 1, marginLeft: 10 }}>
+              <Text style={[styles.heroAiTitle, { color: colors.primary }]}>
+                Trợ Lý Mua Sắm AI
+              </Text>
+              <Text style={[styles.heroAiSub, { color: colors.textLight }]} numberOfLines={1}>
+                Tư vấn chọn mua sản phẩm & ưu đãi
+              </Text>
+            </View>
+            <View style={[styles.chatNowBtn, { backgroundColor: colors.primary }]}>
+              <Text style={styles.chatNowBtnText}>Hỏi ngay</Text>
+            </View>
+          </Pressable>
+
+          <Pressable
+            style={[
+              styles.scanActionBtn,
+              {
+                backgroundColor: colors.surface,
+                borderColor: isDark ? colors.border : '#E0E0E0',
+              },
+            ]}
             onPress={() => navigation.navigate('Scanner')}
-            style={styles.scanBtn}
-            textStyle={{ fontSize: 13 }}
-          />
-          <ShopButton
-            title="Đơn hàng"
-            variant="outline"
-            onPress={() => navigation.navigate('Orders')}
-            style={styles.ordersBtn}
-            textStyle={{ fontSize: 13 }}
-          />
+          >
+            <Text style={{ fontSize: 18 }}>📷</Text>
+            <Text style={[styles.scanActionText, { color: colors.text }]}>Quét mã</Text>
+          </Pressable>
         </View>
 
         {/* 4. Banner hiển thị mã Barcode/QR vừa quét được (Sprint 7) */}
@@ -281,7 +325,7 @@ const HomeScreen = () => {
               return (
                 <Pressable
                   key={item}
-                  onPress={() => setSelectedCategory(item)}
+                  onPress={() => handleSelectCategory(item)}
                   style={[
                     styles.catPill,
                     {
@@ -307,6 +351,47 @@ const HomeScreen = () => {
           </View>
         </View>
 
+        {/* 7b. Bộ lọc khoảng giá tiền */}
+        <View style={styles.priceSection}>
+          <Typography variant="h3" color={colors.text} style={styles.sectionTitle}>
+            💰 Lọc theo khoảng giá
+          </Typography>
+          <ScrollView
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            contentContainerStyle={styles.priceList}
+          >
+            {PRICE_RANGES.map((item) => {
+              const isActive = item.id === selectedPriceRange;
+              return (
+                <Pressable
+                  key={item.id}
+                  onPress={() => handleSelectPriceRange(item.id)}
+                  style={[
+                    styles.pricePill,
+                    {
+                      backgroundColor: isActive ? colors.primary : colors.surface,
+                      borderColor: isActive ? colors.primary : colors.border,
+                    },
+                  ]}
+                >
+                  <Text
+                    style={[
+                      styles.priceText,
+                      {
+                        color: isActive ? '#FFFFFF' : colors.text,
+                        fontWeight: isActive ? '700' : '500',
+                      },
+                    ]}
+                  >
+                    {item.label}
+                  </Text>
+                </Pressable>
+              );
+            })}
+          </ScrollView>
+        </View>
+
         {/* 8. Tiêu đề danh sách */}
         <View style={styles.listHeaderRow}>
           <Typography variant="h3" color={colors.text}>
@@ -325,6 +410,7 @@ const HomeScreen = () => {
       scannedCode,
       search,
       selectedCategory,
+      selectedPriceRange,
       filteredProducts.length,
     ],
   );
@@ -336,29 +422,38 @@ const HomeScreen = () => {
     >
       <StatusBar barStyle={isDark ? 'light-content' : 'dark-content'} />
 
-      {isLoading && (
+      {isLoading && (!allProducts || allProducts.length === 0) && (
         <View style={styles.centerLoading}>
           <ActivityIndicator size="large" color={colors.primary} />
           <Typography variant="body2" color={colors.textLight} style={{ marginTop: 12 }}>
-            Đang tải dữ liệu sản phẩm từ TanStack Query Cloud...
+            Đang kết nối cơ sở dữ liệu máy chủ ShopAI...
           </Typography>
         </View>
       )}
 
-      {isError && (
-        <View style={styles.errorBox}>
-          <Text style={styles.errorEmoji}>⚠️</Text>
-          <Text style={styles.errorText}>{errorMessage}</Text>
-          <ShopButton title="Thử lại" onPress={() => refetch()} style={{ marginTop: 16, width: 140 }} />
-        </View>
+      {isError && (!allProducts || allProducts.length === 0) && (
+        <OfflineStateView
+          onRetry={() => refetch()}
+          message="Không thể kết nối đến máy chủ cơ sở dữ liệu ShopAI. Khi mất mạng, ứng dụng không lấy sản phẩm giả để đảm bảo tính bảo mật và sự đồng nhất dữ liệu."
+        />
       )}
 
-      {!isLoading && !isError && (
+      {allProducts && allProducts.length > 0 && (
         <FlashList
+          ref={listRef}
           data={filteredProducts}
           keyExtractor={(item) => item.id}
           numColumns={2}
-          contentContainerStyle={styles.listContent}
+          estimatedItemSize={280}
+          extraData={[selectedCategory, selectedPriceRange]}
+          onScroll={(e) => {
+            currentScrollY.current = e.nativeEvent.contentOffset.y;
+          }}
+          scrollEventThrottle={16}
+          contentContainerStyle={[
+            styles.listContent,
+            { minHeight: SIZES.height * 1.3 },
+          ]}
           ListHeaderComponent={headerElement}
           showsVerticalScrollIndicator={false}
           refreshControl={
@@ -409,19 +504,38 @@ const HomeScreen = () => {
         }}
       />
 
-      {/* Nút test Crash ẩn chỉ hiện khi __DEV__ (Chương 10 - Bước 3) */}
-      {__DEV__ && (
-        <Pressable
-          onLongPress={() => {
+      {/* Nút thoát App Dev (Nhấn giữ 2 giây để Out App ngay lập tức) */}
+      <Pressable
+        delayLongPress={2000}
+        onLongPress={() => {
+          console.log('[Dev] Nhấn giữ 2s -> Thoát ứng dụng (Out app)');
+          try {
             triggerTestCrash();
-          }}
-          style={{ padding: 8, alignItems: 'center' }}
-        >
-          <Text style={{ textAlign: 'center', fontSize: 10, color: colors.textLight || '#ccc' }}>
-            ShopAI v{APP_VERSION} (Dev: nhấn giữ 2s để test Crashlytics)
-          </Text>
-        </Pressable>
-      )}
+          } catch {}
+          BackHandler.exitApp();
+        }}
+        style={{ paddingVertical: 12, paddingHorizontal: 16, alignItems: 'center' }}
+      >
+        <Text style={{ textAlign: 'center', fontSize: 11, color: colors.textLight || '#ccc' }}>
+          ShopAI v{APP_VERSION} (Dev: Nhấn giữ 2s để thoát app ngay)
+        </Text>
+      </Pressable>
+
+      {/* Nút FAB AI nổi tiện lợi — Chuyển thẳng sang Tab Hỏi AI ở thanh đáy */}
+      <Pressable
+        style={[styles.floatingAiFab, { backgroundColor: colors.primary }]}
+        onPress={() => {
+          const parent = navigation.getParent();
+          if (parent) {
+            parent.navigate('AIChat');
+          } else {
+            navigation.navigate('AIChat');
+          }
+        }}
+      >
+        <Text style={styles.floatingAiIcon}>🤖</Text>
+        <Text style={styles.floatingAiLabel}>Hỏi AI</Text>
+      </Pressable>
     </SafeAreaView>
   );
 };
@@ -464,11 +578,97 @@ const styles = StyleSheet.create({
     ...SHADOWS.light,
   },
   logoutPillText: { fontWeight: '700', fontSize: 12, color: COLORS.danger },
-  cartActionRow: { flexDirection: 'row', gap: 6, marginBottom: 12 },
-  cartBtn: { flex: 1, height: 42, backgroundColor: COLORS.primary },
-  aiBtn: { width: 88, height: 42, backgroundColor: '#722ED1' },
-  scanBtn: { width: 78, height: 42 },
-  ordersBtn: { width: 85, height: 42 },
+  topActionRow: {
+    flexDirection: 'row',
+    gap: 8,
+    marginBottom: 12,
+  },
+  heroAiBtn: {
+    flex: 1,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 12,
+    borderRadius: 14,
+    borderWidth: 1.2,
+    ...SHADOWS.light,
+  },
+  heroAiIconBox: {
+    width: 36,
+    height: 36,
+    borderRadius: 18,
+    backgroundColor: '#FFFFFF',
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroAiTitle: {
+    fontSize: 13,
+    fontWeight: '800',
+  },
+  aiPillBadge: {
+    backgroundColor: '#722ED1',
+    paddingHorizontal: 5,
+    paddingVertical: 1,
+    borderRadius: 6,
+  },
+  aiPillBadgeText: {
+    color: '#FFFFFF',
+    fontSize: 8,
+    fontWeight: '800',
+  },
+  heroAiSub: {
+    fontSize: 11,
+    marginTop: 2,
+  },
+  chatNowBtn: {
+    paddingHorizontal: 10,
+    paddingVertical: 5,
+    borderRadius: 12,
+  },
+  chatNowBtnText: {
+    color: '#FFFFFF',
+    fontSize: 11,
+    fontWeight: '700',
+  },
+  scanActionBtn: {
+    width: 82,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderRadius: 14,
+    borderWidth: 1,
+    paddingVertical: 8,
+    ...SHADOWS.light,
+  },
+  scanActionText: {
+    fontSize: 11,
+    fontWeight: '700',
+    marginTop: 2,
+  },
+  floatingAiFab: {
+    position: 'absolute',
+    bottom: 20,
+    right: 18,
+    flexDirection: 'row',
+    alignItems: 'center',
+    paddingVertical: 10,
+    paddingHorizontal: 16,
+    borderRadius: 24,
+    elevation: 8,
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 4 },
+    shadowOpacity: 0.3,
+    shadowRadius: 6,
+    zIndex: 999,
+  },
+  floatingAiIcon: {
+    fontSize: 18,
+    marginRight: 6,
+  },
+  floatingAiLabel: {
+    color: '#FFFFFF',
+    fontWeight: '800',
+    fontSize: 13,
+  },
   scannedBox: {
     flexDirection: 'row',
     alignItems: 'center',
@@ -524,6 +724,15 @@ const styles = StyleSheet.create({
     borderWidth: 1,
   },
   catText: { fontSize: 13 },
+  priceSection: { marginBottom: 14 },
+  priceList: { flexDirection: 'row', gap: 8, paddingVertical: 2 },
+  pricePill: {
+    paddingHorizontal: 13,
+    paddingVertical: 6,
+    borderRadius: 16,
+    borderWidth: 1,
+  },
+  priceText: { fontSize: 12 },
   listHeaderRow: {
     flexDirection: 'row',
     justifyContent: 'space-between',

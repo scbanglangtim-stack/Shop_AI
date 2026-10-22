@@ -6,12 +6,11 @@ export type AppEnv = 'development' | 'staging' | 'production';
 // Nhờ nó, chỉ một dòng này đã tự phân biệt được máy dev với máy người dùng thật.
 export const APP_ENV: AppEnv = __DEV__ ? 'development' : 'production';
 
-// Bảng địa chỉ Server cho từng môi trường — thay cho việc hardcode IP LAN
+// Bảng địa chỉ Server — kết nối trực tiếp đến NestJS Backend của ShopAI
 const API_URLS: Record<AppEnv, string> = {
-  // Giữ localhost:3000 kết hợp với adb reverse cho môi trường development
   development: 'http://localhost:3000',
-  staging: 'https://staging-api.shopai.com',
-  production: 'https://api.shopai.com',
+  staging: 'http://10.10.42.115:3000',
+  production: 'http://localhost:3000',
 };
 
 export const API_BASE_URL = API_URLS[APP_ENV];

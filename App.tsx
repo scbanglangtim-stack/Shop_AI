@@ -44,6 +44,7 @@ const linking: LinkingOptions<any> = {
             },
           },
           Cart: 'cart',
+          AIChat: 'ai',
           Orders: 'orders',
         },
       },
@@ -67,23 +68,7 @@ function App(): React.JSX.Element {
     logCrashlytics('App ShopAI đã khởi động.');
   }, [checkLocalToken]);
 
-  // Canh gác App Lock: tự động khóa lại nếu app ở nền quá 2 phút (Phần 8.12)
-  useAppLock({ isUnlocked, setIsUnlocked });
-
-  // 1. Nếu đang kiểm tra SecureStore Keystore -> hiện màn hình Loading
-  if (isLoading) {
-    return (
-      <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: COLORS.background }}>
-        <ActivityIndicator size="large" color={COLORS.primary} />
-      </View>
-    );
-  }
-
-  // 2. Đã có Token nhưng chưa vượt qua cổng Sinh trắc học -> Hiện BiometricGateScreen
-  if (token != null && !isUnlocked) {
-    return <BiometricGateScreen onUnlock={() => setIsUnlocked(true)} />;
-  }
-
+  // Mở lên là vào thẳng app mượt mà, không bị màn hình loading chặn lại
   return (
     <SafeAreaProvider>
       <QueryClientProvider client={queryClient}>
